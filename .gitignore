@@ -1,0 +1,4 @@
+data/
+build/
+.vscode/
+model/model.yml
