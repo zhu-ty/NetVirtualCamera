@@ -149,12 +149,20 @@ namespace cam {
 		/*                     capturing function                    */
 		/*************************************************************/
 		/**
-		@brief capture single image of single camera in camera array
+		@brief capture single image of single camera in camera array (raw data)
 		@param int camInd: input index of camera
-		@param cv::Mat & img: output captured images (pre-allocated memory)
+		@param Imagedata & img: output captured images
 		@return int
 		*/
-		int captureFrame(int camInd, cv::Mat & img) override;
+		int captureFrame(int camInd, Imagedata & img) ;
+
+		/**
+		@brief capture single image of single camera in camera array (raw data)
+		@param int camInd: input index of camera
+		@param Imagedata & img: output captured images
+		@return int
+		*/
+		int captureFrame(std::vector<Imagedata> & imgs) ;
 	};
 
 };

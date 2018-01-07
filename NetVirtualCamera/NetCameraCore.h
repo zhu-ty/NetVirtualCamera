@@ -13,11 +13,11 @@
 #include <QThread>
 
 
-#include "base.h"
+#include "Netbase.h"
 //#include "imageDisplayWidget.h"
 //#include "matAndQImage.h"
 //#include "omp.h"
-#include "CameraHeader.h"
+#include "NetCameraHeader.h"
 
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"

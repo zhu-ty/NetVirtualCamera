@@ -5,7 +5,7 @@
 //Date:   11/10/2016@THU
 //Copyright(c) 2015~2016 FrankHXW,All rights reserved.
 *********************************************************************/
-#include "Camera.h"
+#include "NetCameraCore.h"
 
 //#include <opencv2/cudawarping.hpp>
 //#include <opencv2/cudaimgproc.hpp>

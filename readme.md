@@ -1,16 +1,21 @@
-# NetVirtualCamera
-Solve the limits of cameras connect to a single computer.
-## Libraries
-- OpenCV >= 3.0
-- Windows Visual Studio 2015 (Linux or other Visual Studio Version should be OK, but untested, C++11 feature is needed for multi-threads feature ), do not use Visual Studio 2017 now!
-- Qt >= 5 (Will be removed in the future)
+# GenCameraDriver
+## Introduction
+Generic Industry Camera Driver, support capturing (software synchronization), JPEG compression, Saving to video
 
-- OpenGL and Cuda(8.0) will be used in the future to decompress the jpeg data and render images.
+Now two kinds of cameras are support 
 
-## Notice
-Not fully done yet, project is designed to be a remote camera driver, this shoule be used with zhu-ty/CameraDriver2
+1. PointGrey (only for color cameras, tested with FL3-U3-120S3C)
+2. XIMEA (tested with MC031CG-SY-UB)
 
-There may be other bugs. QAQ
+Examples are in main.cpp
 
-zhu-ty
+## Downloads
+Camera SDKs downloads:
 
+link: https://pan.baidu.com/s/1mhBJ0i0 passwd: pafn
+
+Pre-compiled windows libs: (Windows 10 + VS2015 + CUDA8)
+
+link: https://pan.baidu.com/s/1o7DHkam passwd: 2mfi
+
+Good luck!
