@@ -7,7 +7,7 @@
 #include "GenCameraDriver.h"
 //#include "XIMEA/XIMEACamera.h"
 //#include "PointGrey/PointGreyCamera.h"
-#include "NetVirtualCamera\NetVirtualCamera.h"
+#include "NetVirtualCamera/NetVirtualCamera.h"
 #include <time.h>
 #include <algorithm>
 #include <functional>   // std::minus

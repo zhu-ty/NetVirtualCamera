@@ -10,8 +10,10 @@ Implementation of NetVirtual camera
 
 #include "GenCameraDriver.h"
 
-// Network Core Part(TODO)
-
+// Network Core Part
+#include "NetVirtualCamera/Netbase.h"
+#include "NetVirtualCamera/NetCameraCore.h"
+#include "NetVirtualCamera/NetCameraHeader.h"
 
 #include <memory.h>
 
