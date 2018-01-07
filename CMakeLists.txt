@@ -144,3 +144,9 @@ target_link_libraries(${name}
     Qt5::Widgets
 	Qt5::Network
 )
+
+add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${PROJECT_SOURCE_DIR}/NetVirtualCamera/config.xml
+                ${CMAKE_CURRENT_BINARY_DIR}/config.xml)

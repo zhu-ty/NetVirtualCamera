@@ -755,7 +755,7 @@ BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<Cam
 	return No_Error;
 }
 
-BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
+BaseErrorType CameraCommunication::LoadConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_servervec)
 {
 	///采用opencv的yml文件保存参数,保存路径为当前工作目录下
 	///注意读取多级节点时要采用iterator，各节点名不要带":"
@@ -818,6 +818,7 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 		serverVecTmp.push_back(serverUnitTmp);
 	}
 	UpdateLocalParameters(serverVecTmp);
+	_servervec = serverVecTmp;
 	configFileTmp.release();
 	emit LoadConfigFileFinished(_file,true, serverVecTmp);
 	return No_Error;

@@ -12,8 +12,179 @@ namespace cam {
 	// constructor
 	GenCameraNETVIR::GenCameraNETVIR() {
 		this->camModel = CameraModel::Network;
+		communication_camera = new CameraCommunication();
+		communication_camera->moveToThread(&communication_thread);
+
+		//Qt Connect
+		//qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //自定义信号与槽函数类型
+		//qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
+		QObject::connect(this,
+			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
+			communication_camera,
+			SLOT(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
+			Qt::QueuedConnection);
+		QObject::connect(communication_camera, SIGNAL(OperationFinished(CameraControlMessage &)),
+			this, SLOT(OperationFinished(CameraControlMessage &)), Qt::QueuedConnection);
+
 	}
 	GenCameraNETVIR::~GenCameraNETVIR() {}
+
+	/***********************************************************/
+	/*                 Qt and network functions                */
+	/***********************************************************/
+
+	/**
+	@brief Network CameraControl Send (In main thread)
+	@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
+	@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+	*/
+	void GenCameraNETVIR::StartOperation(CameraControlMessage &_cameraControlMessage,
+		std::vector<CameraServerUnitTypeDef> &_serverVec)
+	{
+		emit StartOperation(cameraControlMessage_, serverVec_);
+	}
+
+	/**
+	@brief Network CameraControl Receive (In main thread)
+	@param CameraControlMessage & _cameraControlMessage: Server's respond pack
+	*/
+	void GenCameraNETVIR::OperationFinished(CameraControlMessage &_cameraControlMessage)
+	{
+		if (_cameraControlMessage.requestorId_ == id_ || _cameraControlMessage.requestorId_ == 0) {
+			cameraControlMessage_ = _cameraControlMessage;
+			Communication_Camera_Command command = cameraControlMessage_.command_;
+			Communication_Camera_Status status = cameraControlMessage_.status_;
+			int serverIndex = cameraControlMessage_.serverIndex_;
+			int boxIndex = cameraControlMessage_.boxIndex_;
+			int cameraIndex = cameraControlMessage_.cameraIndex_;
+			int cameraAmount = cameraControlMessage_.cameraAmount_;
+			bool operateAllFlag = true;
+			int currentBoxIndex = 0;
+			int currentCameraIndex = 0;
+			if (serverIndex < serverVec_.size() && boxIndex<serverVec_[serverIndex].boxVec_.size() && cameraIndex<serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_.size()) {
+				switch (command) {
+				case Communication_Camera_Get_Status: {			//update status
+					switch (status) {
+					case Communication_Camera_Get_Status_Ok: {
+						serverVec_[serverIndex].connectedFlag_ = true;
+						bool cameraIsConnect = true;
+						for (int32_t i = 0; i < serverVec_.size(); i++)
+						{
+							if (serverVec_[i].connectedFlag_ == false)
+								cameraIsConnect = false;
+						}
+						if (cameraIsConnect == true) {
+							SysUtil::infoOutput("Connected!");
+							////if (!isInitial)StartOperation();
+						}
+						break;
+					}
+					case Communication_Camera_Get_Status_Invalid: {
+
+						serverVec_[serverIndex].connectedFlag_ = false;
+						SysUtil::warningOutput("Communication_Camera_Get_Status_Invalid!");
+						break;
+					}
+					}
+					break;
+				}
+				case Communication_Camera_Open_Box: {			//open box
+					SysUtil::warningOutput("Communication_Camera_Open_Box not supported reply pack");
+					break;
+				}
+				case Communication_Camera_Open_Camera: {			//open camera
+					std::ostringstream strTmp("");
+					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+					switch (status) {
+					case Communication_Camera_Open_Camera_Ok: {
+
+						SysUtil::infoOutput(("[Server" + QString::number(serverIndex, 10) + "]Open cameras OK.").toStdString());
+						break;
+					}
+					case Communication_Camera_Open_Camera_Invalid: {
+						strTmp << "Failed to open Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";
+						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
+						break;
+					}
+					case Communication_Camera_Action_Overtime: {
+						strTmp << "Overtime to open Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";      
+						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
+						break;
+					}
+					}
+
+					break;
+				}
+				case Communication_Camera_Trigger_Continous: {			//trigger continous
+					SysUtil::warningOutput("Communication_Camera_Trigger_Continous not supported reply pack");
+					break;
+				}
+				case Communication_Camera_Trigger_Single: {			//trigger single
+					SysUtil::warningOutput("Communication_Camera_Trigger_Single not supported reply pack");
+					break;
+				}
+				case Communication_Camera_Get_Image: {			//get image
+					std::ostringstream strTmp("");
+					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+					switch (status) {
+					case Communication_Camera_Get_Image_Ok: {
+						//TODO copy the image and set the flag
+						int32_t imagesize = _cameraControlMessage.imageSize_;
+						SysUtil::infoOutput(("server" + QString::number(serverIndex, 10) +
+							"getImage OK,imageSize=" + QString::number(imagesize, 10)).toStdString());
+						break;
+					}
+					case Communication_Camera_Get_Image_Invalid: {
+						SysUtil::warningOutput(("server" + QString::number(serverIndex, 10) +
+							"_camera" + QString::number(cameraIndex, 10) + "getImage Invalid").toStdString());
+						break;
+					}
+					case Communication_Camera_Action_Overtime: {
+						SysUtil::warningOutput(("server" + QString::number(serverIndex, 10) +
+							"_camera" + QString::number(cameraIndex, 10) + "getImage Overtime").toStdString());
+						break;
+					}
+					}
+					break;
+				}
+				case Communication_Camera_Close_Box: {			//close box
+					SysUtil::warningOutput("Communication_Camera_Close_Box not supported reply pack");
+					break;
+				}
+
+				case Communication_Camera_Close_Camera: {			//close camera
+					std::ostringstream strTmp("");
+					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+					switch (status) {
+					case Communication_Camera_Close_Camera_Ok: {
+						SysUtil::infoOutput(("[Server" + QString::number(serverIndex, 10) + "]Colse Camera").toStdString());
+						break;
+					}
+					case Communication_Camera_Close_Camera_Invalid: {
+						strTmp << "Failed to close Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";
+						SysUtil::warningOutput(strTmp.str());
+						break;
+					}
+					case Communication_Camera_Action_Overtime: {
+						strTmp << "Overtime to close Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";
+						SysUtil::warningOutput(strTmp.str());
+						break;
+					}
+					}
+					break;
+				}
+				case Communication_Camera_Reset_Id: {			//reset id
+					SysUtil::warningOutput("Communication_Camera_Reset_Id not supported reply pack");
+					break;
+				}
+				default:
+					break;
+				}
+			}
+		}
+	}
+
+
 
 	/***********************************************************/
 	/*                   basic camera functions                */
@@ -39,10 +210,36 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::init() {
-		//TODO
 		ths.resize(this->cameraNum);
 		thStatus.resize(this->cameraNum);
 		this->isInit = true;
+		communication_camera->LoadConfigFile(QString::fromStdString(communication_camera->configFileName_), serverVec_);
+		communication_thread.start(QThread::NormalPriority);
+
+		Sleep(100);//TODO:should we sleep?
+
+		if (serverVec_.size() == NULL || !serverVec_[0].connectedFlag_) {//TODO: should check every server!
+			std::ostringstream strTmp("");
+			strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
+			SysUtil::warningOutput(strTmp.str());
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = 2;
+				SysUtil::infoOutput(("[Camera]Opening server" + QString::number(serverIndex, 10) + "'s camera...").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1代表修改所有参数
+				StartOperation(cameraControlMessage_, serverVec_);
+			}
+		}
 		return 0;
 	}
 

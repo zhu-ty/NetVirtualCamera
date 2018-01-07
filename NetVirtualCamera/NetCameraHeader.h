@@ -96,7 +96,15 @@ enum  Communication_Camera_Status
 };
 
 
-
+/**
+@brief struct to save image data
+both raw image data and jpeg compressed image data
+*/
+struct Imagedata {
+	char* data; // data pointer
+	size_t maxLength; // max malloced memory size
+	size_t length; // jpeg data length
+};
 
 ///该结构体用于GUI和其它线程向相机控制线程发送消息并接收反馈
 class CameraControlMessage
@@ -120,6 +128,7 @@ public:
 	float waitTime_ = 0;
 	//cv::Mat *imageMat_ =NULL;									//获取单张图片的存放起始地址
 	std::vector<cv::Mat *>imagesMat_;
+	std::vector<Imagedata>images_;									//GetImage图片地址
 	//QImage *qimage_ = NULL;									//获取单张图片的存放起始地址
 	int32_t imageSize_ = 0;
 

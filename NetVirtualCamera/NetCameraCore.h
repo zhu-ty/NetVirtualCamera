@@ -33,7 +33,7 @@ public:
 	//cv::cuda::GpuMat *resizeimg;
 	QTimer *updateTimer;			//该Timer用于更新设备状态
 	static const int32_t updateTimerInterval = 1000;		//心跳
-	QVector<int> formVector_;      //窗换窗位表
+	QVector<int> formVector_;      //窗宽窗位表
 signals:
 	void OperationFinished(CameraControlMessage &_cameraControlMessage);
 
@@ -76,7 +76,7 @@ signals:
 	void OperationFinished(CameraControlMessage &_cameraControlMessage);														//用于发送给各请求者
 
 public slots:
-	BaseErrorType LoadConfigFile(QString _file);
+	BaseErrorType LoadConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_servervec);
 	BaseErrorType SaveConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_serverVec);
 	void StartStopTimer(bool _flag);
 	void TimerTimeout(void);						

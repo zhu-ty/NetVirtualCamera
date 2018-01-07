@@ -20,13 +20,40 @@ Implementation of NetVirtual camera
 namespace cam {
 
 
-	class GenCameraNETVIR : public GenCamera {
+	class GenCameraNETVIR : public GenCamera, QObject {
 	private:
-
+		//Network threads and classes
+		QThread communication_thread;
+		CameraCommunication *communication_camera;
+		//ServerVector
+		std::vector<CameraServerUnitTypeDef> serverVec_;
+		//ServerControlMessage
+		CameraControlMessage cameraControlMessage_;
+		//Client ID
+		int id_ = -1;
 	public:
 
 	private:
 
+	protected:
+		/***********************************************************/
+		/*                 Qt and network functions                */
+		/***********************************************************/
+	signals :
+		/**
+		@brief Network CameraControl Send (In main thread)
+		@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
+		@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+		*/
+		void StartOperation(CameraControlMessage &_cameraControlMessage,
+			std::vector<CameraServerUnitTypeDef> &_serverVec);
+
+	public slots:
+		/**
+		@brief Network CameraControl Receive (In main thread)
+		@param CameraControlMessage & _cameraControlMessage: Server's respond pack
+		*/
+		void OperationFinished(CameraControlMessage &_cameraControlMessage);
 
 	public:
 		GenCameraNETVIR();
