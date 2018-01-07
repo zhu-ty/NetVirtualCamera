@@ -1,4 +1,4 @@
-# GigaClient
+# NetVirtualCamera
 Solve the limits of cameras connect to a single computer.
 ## Libraries
 - OpenCV >= 3.0
