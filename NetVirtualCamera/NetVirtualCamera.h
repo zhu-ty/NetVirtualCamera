@@ -31,6 +31,8 @@ namespace cam {
 		CameraControlMessage cameraControlMessage_;
 		//Client ID
 		int id_ = -1;
+		//Local wait time for each operation (ms)
+		int wait_time_local = 5000;
 	public:
 
 	private:
@@ -99,9 +101,11 @@ namespace cam {
 		/**
 		@brief set frame rate
 		@param float fps: input fps
+		@param float exposureUpperLimitRatio: exposure upper limit time, make
+		exposure upper limit time = 1000000us / fps * 0.8
 		@return int
 		*/
-		int setFPS(int camInd, float fps) override;
+		int setFPS(int camInd, float fps, float exposureUpperLimitRatio = 0.8) override;
 
 		/**
 		@brief set auto white balance
@@ -178,20 +182,34 @@ namespace cam {
 		/*                     capturing function                    */
 		/*************************************************************/
 		/**
-		@brief capture single image of single camera in camera array (raw data)
-		@param int camInd: input index of camera
-		@param Imagedata & img: output captured images
+		@brief set capturing mode
+		@param GenCamCaptureMode captureMode: capture mode
+		@param int size: buffer size
 		@return int
 		*/
-		int captureFrame(int camInd, Imagedata & img) ;
+		int setCaptureMode(GenCamCaptureMode captureMode,
+			int bufferSize);
 
 		/**
-		@brief capture single image of single camera in camera array (raw data)
-		@param int camInd: input index of camera
-		@param Imagedata & img: output captured images
+		@brief wait for recording threads to finish
 		@return int
 		*/
-		int captureFrame(std::vector<Imagedata> & imgs) ;
+		int waitForRecordFinish();
+
+		/**
+		@brief start capturing threads
+		capturing threads captures images from cameras, and buffer to
+		bufferImgs vector, if buffer type is jpeg, this function will start
+		a thread to compress captured images into buffer vector
+		@return int
+		*/
+		int startCaptureThreads();
+
+		/**
+		@brief stop capturing threads
+		@return int
+		*/
+		int stopCaptureThreads();
 	};
 
 };

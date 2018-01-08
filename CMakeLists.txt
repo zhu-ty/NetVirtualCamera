@@ -1,4 +1,4 @@
-## CMakeLists.txt for generic camera driver
+## CMakeLists.txt for Netvirtual Camera Driver
 # author: Shane Yuan
 # date: Dec 29, 2017
 
@@ -64,7 +64,7 @@ set(MY_HEADER_FILES
     helper_string.h
     NPPJpegCoder.h
     GenCameraDriver.h
-    # CameraBase.h
+    RealCameraDriver.h
     # # point grey camera
     # PointGrey/PointGreyCamera.h
     # # XIMEA camera
@@ -89,7 +89,8 @@ set(MY_SOURCE_FILES
     NPPJpegCoder.cpp
     # generic camera driver
     GenCameraDriver.cpp
-    # CameraBase.cpp
+    GenCameraDriverImpl.cpp
+    RealCameraDriver.cpp
     # main function
     main.cpp
 )
