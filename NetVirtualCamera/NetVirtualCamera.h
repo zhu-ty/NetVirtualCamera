@@ -33,10 +33,18 @@ namespace cam {
 		int id_ = -1;
 		//Local wait time for each operation (ms)
 		int wait_time_local = 5000;
+		// threads to capture images
+		std::thread ths;
+		bool isCaptureThreadRunning;
 	public:
 
 	private:
-
+		/**
+		@brief thread capturing function (jpeg buffer)
+		used for continous mode
+		thread function to get images from camera
+		*/
+		void capture_thread_JPEG_();
 	protected:
 		/***********************************************************/
 		/*                 Qt and network functions                */
