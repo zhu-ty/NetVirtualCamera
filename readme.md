@@ -1,5 +1,7 @@
 # NetVirtualCamera
 Solve the limits of cameras connect to a single computer.
+
+Project from [yuanxy92/GenCameraDriver](https://github.com/yuanxy92/GenCameraDriver)
 ## Libraries
 - OpenCV >= 3.0
 - Windows Visual Studio 2015 (Linux or other Visual Studio Version should be OK, but untested, C++11 feature is needed for multi-threads feature ), do not use Visual Studio 2017 now!
