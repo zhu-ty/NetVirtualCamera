@@ -7,6 +7,9 @@
 *********************************************************************/
 #pragma once
 #include "stdint.h"
+
+//#include "GenCameraDriver.h"
+
 #include <iostream>
 #include <QMutex>
 
@@ -96,15 +99,15 @@ enum  Communication_Camera_Status
 };
 
 
-/**
-@brief struct to save image data
-both raw image data and jpeg compressed image data
-*/
-struct Imagedata {
-	char* data; // data pointer
-	size_t maxLength; // max malloced memory size
-	size_t length; // jpeg data length
-};
+///**
+//@brief struct to save image data
+//both raw image data and jpeg compressed image data
+//*/
+//struct Imagedata {
+//	char* data; // data pointer
+//	size_t maxLength; // max malloced memory size
+//	size_t length; // jpeg data length
+//};
 
 ///该结构体用于GUI和其它线程向相机控制线程发送消息并接收反馈
 class CameraControlMessage
@@ -127,8 +130,10 @@ public:
 	int32_t imageResizedHeight_ = 0;							//获取单图片缩放后高度
 	float waitTime_ = 0;
 	//cv::Mat *imageMat_ =NULL;									//获取单张图片的存放起始地址
-	std::vector<cv::Mat *>imagesMat_;
-	std::vector<Imagedata>images_;									//GetImage图片地址
+	//std::vector<cv::Mat *>imagesMat_;
+	//std::vector<cam::Imagedata *>images_;								//GetImage图片地址
+	std::vector<char *> images_jpeg_raw;
+	std::vector<size_t *> images_jpeg_len;
 	//QImage *qimage_ = NULL;									//获取单张图片的存放起始地址
 	int32_t imageSize_ = 0;
 
@@ -149,7 +154,9 @@ public:
 		imageResizedHeight_ = _value.imageResizedHeight_;
 		waitTime_ = _value.waitTime_;
 		/*imageMat_ = _value.imageMat_;*/
-		imagesMat_ = _value.imagesMat_;
+		//imagesMat_ = _value.imagesMat_;
+		images_jpeg_raw = _value.images_jpeg_raw;
+		images_jpeg_len = _value.images_jpeg_len;
 		/*qimage_ = _value.qimage_;*/
 		imageSize_ = _value.imageSize_;
 	}

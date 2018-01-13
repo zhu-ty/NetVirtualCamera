@@ -9,9 +9,17 @@
 #include <algorithm>
 #include <functional>   // std::minus
 #include <numeric>      // std::accumulate
+#include <fstream>
 
 // include NPPJpegCoder
 #include "NPPJpegCoder.h"
+//cuda
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+
+#include <opencv2/video.hpp>
+#include <opencv2/videoio.hpp>
 
 namespace cam {
 

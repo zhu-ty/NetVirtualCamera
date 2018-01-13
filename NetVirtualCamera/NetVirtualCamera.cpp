@@ -15,6 +15,106 @@ namespace cam {
 	*/
 	void GenCameraNETVIR::capture_thread_JPEG_()
 	{
+		clock_t begin_time, end_time;
+		//TODO: Can't set fps for each camera right now
+		double time = 1000.0 / static_cast<double>(camInfos[0].fps);
+		for (;;) {
+			// begin time
+			begin_time = clock();
+			// check status
+			if (thexit == 1)
+				break;
+			// capture image
+			// this->captureFrame(camInd, bufferImgs_singleframe[camInd]);
+			int camInd = 0;
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				int boxIndex = 0;
+				cameraControlMessage_.command_ = Communication_Camera_Get_Image;//Get Image
+				cameraControlMessage_.status_ = Communication_Camera_Get_Image_Invalid;
+				cameraControlMessage_.imageType_ = 2;	
+				cameraControlMessage_.imageResizedFactor_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				cameraControlMessage_.images_jpeg_raw.clear();
+				cameraControlMessage_.images_jpeg_len.clear();
+				for (int cameraIndex = 0; cameraIndex < cameraControlMessage_.cameraAmount_; cameraIndex++)
+				{
+					cameraControlMessage_.images_jpeg_raw.push_back(
+						bufferImgs[thBufferInds[camInd]][camInd].data);
+					cameraControlMessage_.images_jpeg_len.push_back(
+						&bufferImgs[thBufferInds[camInd]][camInd].length);
+					camInd++;
+				}
+				emit StartOperation(cameraControlMessage_, serverVec_);
+				image_receiving_flag[serverIndex] = 1;
+			}
+			wait_for_image_receive();
+			// end time
+			end_time = clock();
+			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
+			// increase index
+			for (int camIndTmp = 0; camIndTmp < this->cameraNum; camIndTmp++)
+			{
+				if (camPurpose == GenCamCapturePurpose::Streaming)
+					thBufferInds[camIndTmp] = (thBufferInds[camIndTmp] + 1) % bufferSize;
+				else {
+					thBufferInds[camIndTmp] = thBufferInds[camIndTmp] + 1;
+					if (thBufferInds[camIndTmp] == bufferSize) {
+						thexit = 1;//TODO: with only one thread, just exit
+					}
+				}
+			}
+			// wait for some time
+			if (isVerbose) {
+				printf("GenCameraNETVIR::capture_thread_JPEG_ Camera all captures one frame, wait %lld milliseconds for next frame ...\n",
+					static_cast<long long>(waitTime));
+			}
+			if (waitTime > 0) {
+				SysUtil::sleep(waitTime);
+			}
+		}
+		SysUtil::infoOutput("GenCameraNETVIR::capture_thread_JPEG_:: Capturing thread for camera all finish, exit successfully !");
+	}
+
+	int GenCameraNETVIR::wait_for_image_receive()
+	{
+		for (int j = 0; j < serverVec_.size(); j++)
+		{
+			if (image_receiving_flag[j] == 0)
+			{
+				return 0;
+			}
+		}
+		for (int i = 0;;)
+		{
+			bool breakflag = true;
+			for (int j = 0; j < serverVec_.size(); j++)
+			{
+				if (image_receiving_flag[j] != -1)
+				{
+					breakflag = false;
+				}
+			}
+			if (breakflag == true)
+				break;
+			else if (i > wait_time_local)
+			{
+				SysUtil::warningOutput("GenCameraNETVIR::wait_for_image_receive wait too long, check your network");
+				break;
+			}
+			else
+			{
+				i += 5;
+				SysUtil::sleep(5);
+			}
+		}
+		for (int j = 0; j < serverVec_.size(); j++)
+		{
+			image_receiving_flag[j] = 0;
+		}
+		return 0;
 	}
 
 	// constructor
@@ -22,10 +122,10 @@ namespace cam {
 		this->camModel = CameraModel::Network;
 		communication_camera = new CameraCommunication();
 		communication_camera->moveToThread(&communication_thread);
-
+		communication_camera->StartStopTimer(true);
 		//Qt Connect
-		//qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //自定义信号与槽函数类型
-		//qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
+		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //自定义信号与槽函数类型
+		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 		QObject::connect(this,
 			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
 			communication_camera,
@@ -41,16 +141,16 @@ namespace cam {
 	/*                 Qt and network functions                */
 	/***********************************************************/
 
-	/**
-	@brief Network CameraControl Send (In main thread)
-	@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
-	@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
-	*/
-	void GenCameraNETVIR::StartOperation(CameraControlMessage &_cameraControlMessage,
-		std::vector<CameraServerUnitTypeDef> &_serverVec)
-	{
-		emit StartOperation(cameraControlMessage_, serverVec_);
-	}
+	///**
+	//@brief Network CameraControl Send (In main thread)
+	//@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
+	//@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+	//*/
+	//void GenCameraNETVIR::StartOperation(CameraControlMessage &_cameraControlMessage,
+	//	std::vector<CameraServerUnitTypeDef> &_serverVec)
+	//{
+	//	emit StartOperation(cameraControlMessage_, serverVec_);
+	//}
 
 	/**
 	@brief Network CameraControl Receive (In main thread)
@@ -137,9 +237,9 @@ namespace cam {
 				case Communication_Camera_Get_Image: {			//get image
 					std::ostringstream strTmp("");
 					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+					image_receiving_flag[serverIndex] = -1;
 					switch (status) {
 					case Communication_Camera_Get_Image_Ok: {
-						//TODO copy the image and set the flag
 						int32_t imagesize = _cameraControlMessage.imageSize_;
 						SysUtil::infoOutput(("server" + QString::number(serverIndex, 10) +
 							"getImage OK,imageSize=" + QString::number(imagesize, 10)).toStdString());
@@ -215,7 +315,7 @@ namespace cam {
 				"starting capturing !");
 			return -1;
 		}
-		SysUtil::errorOutput("NetVirtualCamera::makeSetEffective Function unused");
+		SysUtil::errorOutput("GenCameraNETVIR::makeSetEffective Function unused");
 		return -1;
 	}
 
@@ -232,6 +332,7 @@ namespace cam {
 		for (int i = 0; i < serverVec_.size(); i++)
 		{
 			this->cameraNum += serverVec_[i].boxVec_[0].cameraAmount_;
+			image_receiving_flag.push_back(0);
 		}
 		this->isInit = true;
 		return 0;
@@ -245,7 +346,7 @@ namespace cam {
 	int GenCameraNETVIR::getCamInfos(std::vector<GenCamInfo> & camInfos) {
 		if (this->isInit == false)
 		{
-			SysUtil::warningOutput("NetVirtualCamera::getCamInfos init first please");
+			SysUtil::warningOutput("GenCameraNETVIR::getCamInfos init first please");
 			return -1;
 		}
 		camInfos.resize(this->cameraNum);
@@ -256,7 +357,7 @@ namespace cam {
 			camInfos[i].sn = "000000";
 			camInfos[i].width = 2048;
 			camInfos[i].height = 2048;
-			camInfos[i].fps = 60.0f;
+			camInfos[i].fps = 10.0f;
 			camInfos[i].autoExposure = Status::on;
 			this->getBayerPattern(i, camInfos[i].bayerPattern);
 			camInfos[i].redGain = 1.0f;
@@ -275,7 +376,7 @@ namespace cam {
 	int GenCameraNETVIR::startCapture() {
 		if (this->isInit == false)
 		{
-			SysUtil::warningOutput("NetVirtualCamera::startCapture init first please");
+			SysUtil::warningOutput("GenCameraNETVIR::startCapture init first please");
 			return -1;
 		}
 		if (serverVec_.size() == NULL || !serverVec_[0].connectedFlag_) {//TODO: should check every server!
@@ -297,7 +398,7 @@ namespace cam {
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
 				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1代表修改所有参数
-				StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			//isCapture moved to OperationFinished
 			//this->isCapture = true;
@@ -307,7 +408,7 @@ namespace cam {
 					break;
 				else if (i > wait_time_local)
 				{
-					SysUtil::warningOutput("NetVirtualCamera::startCapture wait too long, check your network");
+					SysUtil::warningOutput("GenCameraNETVIR::startCapture wait too long, check your network");
 					break;
 				}
 				else
@@ -317,6 +418,9 @@ namespace cam {
 				}
 
 			}
+
+			//TODO: removed from here
+			this->getCamInfos(camInfos);
 		}
 		return 0;
 	}
@@ -345,7 +449,7 @@ namespace cam {
 				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
 				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1代表修改所有参数
-				StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			for (int i = 0;;)
 			{
@@ -353,7 +457,7 @@ namespace cam {
 					break;
 				else if (i > wait_time_local)
 				{
-					SysUtil::warningOutput("NetVirtualCamera::stopCapture wait too long, check your network");
+					SysUtil::warningOutput("GenCameraNETVIR::stopCapture wait too long, check your network");
 					break;
 				}
 				else
@@ -386,7 +490,7 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setFPS(int camInd, float fps, float exposureUpperLimitRatio) {
-		SysUtil::warningOutput("NetVirtualCamera::setFPS Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setFPS Function unused");
 		return -1;
 		return 0;
 	}
@@ -397,7 +501,7 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoWhiteBalance(int camInd) {
-		SysUtil::warningOutput("NetVirtualCamera::setAutoWhiteBalance Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setAutoWhiteBalance Function unused");
 		return -1;
 		return 0;
 	}
@@ -412,7 +516,7 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::setWhiteBalance(int camInd, float redGain,
 		float greenGain, float blueGain) {
-		SysUtil::warningOutput("NetVirtualCamera::setWhiteBalance Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setWhiteBalance Function unused");
 		return -1;
 		return 0;
 	}
@@ -424,7 +528,7 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoExposure(int camInd, Status autoExposure) {
-		SysUtil::warningOutput("NetVirtualCamera::setAutoExposure Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposure Function unused");
 		return -1;
 		return 0;
 	}
@@ -438,7 +542,7 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoExposureLevel(int camInd, float level) {
-		SysUtil::warningOutput("NetVirtualCamera::setAutoExposureLevel Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureLevel Function unused");
 		return -1;
 		return 0;
 	}
@@ -454,7 +558,7 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::setAutoExposureCompensation(int camInd,
 		Status status, float relativeEV) {
-		SysUtil::warningOutput("NetVirtualCamera::setAutoExposureCompensation Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureCompensation Function unused");
 		return -1;
 		return 0;
 	}
@@ -466,7 +570,7 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setExposure(int camInd, int time) {
-		SysUtil::warningOutput("NetVirtualCamera::setExposure Function unused");
+		SysUtil::warningOutput("GenCameraNETVIR::setExposure Function unused");
 		return -1;
 		return 0;
 	}
@@ -479,7 +583,7 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::getBayerPattern(int camInd, GenCamBayerPattern & bayerPattern) {
 		//TODO:To dynamic
-		SysUtil::warningOutput("NetVirtualCamera::getBayerPattern TODO!");
+		SysUtil::warningOutput("GenCameraNETVIR::getBayerPattern TODO!");
 		bayerPattern = GenCamBayerPattern::BayerRGGB;
 		return 0;
 	}
@@ -505,7 +609,7 @@ namespace cam {
 			captureMode == cam::GenCamCaptureMode::ContinousTrigger) {
 			// create buffer for raw buffer type
 			if (this->bufferType == GenCamBufferType::Raw) {
-				SysUtil::warningOutput("NetVirtualCamera::setCaptureMode Raw data is not implemented yet !");
+				SysUtil::warningOutput("GenCameraNETVIR::setCaptureMode Raw data is not implemented yet !");
 				return -1;
 			}
 			// create buffer for JPEG buffer type
@@ -529,7 +633,7 @@ namespace cam {
 		}
 		else if (captureMode == cam::GenCamCaptureMode::Single ||
 			captureMode == cam::GenCamCaptureMode::SingleTrigger) {
-			SysUtil::warningOutput("NetVirtualCamera::setCaptureMode Single mode is not implemented yet !");
+			SysUtil::warningOutput("GenCameraNETVIR::setCaptureMode Single mode is not implemented yet !");
 			return -1;
 		}
 		return 0;
@@ -541,8 +645,21 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::waitForRecordFinish()
 	{
-		//TODO
-		SysUtil::warningOutput("NetVirtualCamera::waitForRecordFinish TODO!");
+		// check capturing purpose 
+		if (this->camPurpose != GenCamCapturePurpose::Recording) {
+			SysUtil::warningOutput("This function is only valid in recording mode");
+			return -1;
+		}
+		// check thread status
+		if (this->isCaptureThreadRunning != true) {
+			SysUtil::errorOutput("Capturing thread is not started !");
+			return -1;
+		}
+		for (size_t i = 0; i < this->cameraNum; i++) {
+			ths.join();
+			SysUtil::infoOutput("GenCameraNETVIR::waitForRecordFinish Capturing thread exit successfully !");
+		}
+		isCaptureThreadRunning = false;
 		return 0;
 	}
 
@@ -555,6 +672,11 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::startCaptureThreads()
 	{
+		if (isInit == false)
+		{
+			SysUtil::errorOutput("GenCameraNETVIR::startCaptureThreads without init!");
+			return -1;
+		}
 		if (captureMode == cam::GenCamCaptureMode::Continous ||
 			captureMode == cam::GenCamCaptureMode::ContinousTrigger) {
 			thBufferInds.resize(this->cameraNum);
@@ -564,28 +686,22 @@ namespace cam {
 			}
 			// start threads based on buffer type
 			if (this->bufferType == GenCamBufferType::Raw) {
-				SysUtil::warningOutput("NetVirtualCamera::startCaptureThreads Raw data not supported yet");
+				SysUtil::warningOutput("GenCameraNETVIR::startCaptureThreads Raw data not supported yet");
 				return -1;
 			}
 			else if (this->bufferType == GenCamBufferType::JPEG) {
-				//TODO 
-				//// start compress theads
-				//thJPEG = std::thread(&RealCamera::compress_thread_JPEG_, this);
-				//isCompressThreadRunning = true;
-				//// start capturing threads
-				//for (size_t i = 0; i < this->cameraNum; i++) {
-				//	ths[i] = std::thread(&RealCamera::capture_thread_JPEG_, this, i);
-				//}
-				//isCaptureThreadRunning = true;
+				// start capturing threads
+				ths = std::thread(&GenCameraNETVIR::capture_thread_JPEG_, this);
+				isCaptureThreadRunning = true;
 			}
 			else if (this->bufferType == GenCamBufferType::RGB24 ||
 				this->bufferType == GenCamBufferType::Raw16) {
-				SysUtil::warningOutput("NetVirtualCamera::startCaptureThreads RGB24 and Raw16 data not supported yet");
+				SysUtil::warningOutput("GenCameraNETVIR::startCaptureThreads RGB24 and Raw16 data not supported yet");
 				return -1;
 			}
 		}
 		else {
-			SysUtil::warningOutput("NetVirtualCamera::startCaptureThreads This function is only valid when capture mode is " \
+			SysUtil::warningOutput("GenCameraNETVIR::startCaptureThreads This function is only valid when capture mode is " \
 				"Continous or ContinousTrigger !");
 			return -1;
 		}
@@ -598,8 +714,18 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::stopCaptureThreads()
 	{
-		//TODO
-		SysUtil::warningOutput("NetVirtualCamera::stopCaptureThreads TODO!");
+		thexit = 1;
+		// make sure all the threads have exited
+		if (this->camPurpose == cam::GenCamCapturePurpose::Streaming) {
+			if (isCaptureThreadRunning == true) {
+				for (size_t i = 0; i < this->cameraNum; i++) {
+					ths.join();
+					SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads Capturing thread exit successfully!");
+				}
+				isCaptureThreadRunning = false;
+			}
+		}
+		SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads camera driver released successfully!");
 		return 0;
 	}
 }

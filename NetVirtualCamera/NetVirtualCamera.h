@@ -20,22 +20,32 @@ Implementation of NetVirtual camera
 namespace cam {
 
 
-	class GenCameraNETVIR : public GenCamera, QObject {
+	class GenCameraNETVIR : public QObject, public GenCamera {
+		Q_OBJECT
 	private:
-		//Network threads and classes
+		// Network threads and classes
 		QThread communication_thread;
 		CameraCommunication *communication_camera;
-		//ServerVector
+		// ServerVector
 		std::vector<CameraServerUnitTypeDef> serverVec_;
-		//ServerControlMessage
+		// ServerControlMessage
 		CameraControlMessage cameraControlMessage_;
-		//Client ID
+		// Client ID
 		int id_ = -1;
-		//Local wait time for each operation (ms)
+		// Local wait time for each operation (ms)
 		int wait_time_local = 5000;
 		// threads to capture images
 		std::thread ths;
 		bool isCaptureThreadRunning;
+		// variable to exit all the threads (used for streaming mode)
+		// thexit == 1, exit thread
+		// thexit == 0, keep running
+		int thexit;
+		// used by wait_for_image_receive();
+		// 0 : unused
+		// 1 : waiting
+		// -1 : receive done (including bad receive)
+		std::vector<int> image_receiving_flag;
 	public:
 
 	private:
@@ -45,25 +55,12 @@ namespace cam {
 		thread function to get images from camera
 		*/
 		void capture_thread_JPEG_();
-	protected:
-		/***********************************************************/
-		/*                 Qt and network functions                */
-		/***********************************************************/
-	signals :
 		/**
-		@brief Network CameraControl Send (In main thread)
-		@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
-		@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+		@brief thread capturing function (jpeg buffer)
+		used for continous mode
+		thread function to get images from camera
 		*/
-		void StartOperation(CameraControlMessage &_cameraControlMessage,
-			std::vector<CameraServerUnitTypeDef> &_serverVec);
-
-	public slots:
-		/**
-		@brief Network CameraControl Receive (In main thread)
-		@param CameraControlMessage & _cameraControlMessage: Server's respond pack
-		*/
-		void OperationFinished(CameraControlMessage &_cameraControlMessage);
+		int wait_for_image_receive();
 
 	public:
 		GenCameraNETVIR();
@@ -218,6 +215,27 @@ namespace cam {
 		@return int
 		*/
 		int stopCaptureThreads();
+
+
+		protected:
+			/***********************************************************/
+			/*                 Qt and network functions                */
+			/***********************************************************/
+		signals :
+			/**
+			@brief Network CameraControl Send (In main thread)
+			@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
+			@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+			*/
+			void StartOperation(CameraControlMessage &_cameraControlMessage,
+				std::vector<CameraServerUnitTypeDef> &_serverVec);
+
+		public slots:
+			/**
+			@brief Network CameraControl Receive (In main thread)
+			@param CameraControlMessage & _cameraControlMessage: Server's respond pack
+			*/
+			void OperationFinished(CameraControlMessage &_cameraControlMessage);
 	};
 
 };

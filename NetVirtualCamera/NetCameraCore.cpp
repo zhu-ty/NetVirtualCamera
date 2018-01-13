@@ -413,54 +413,28 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 						cameraControlMessage_.cameraAmount_ = receiveDataTmp.cameraAmount_;
 						int32_t jpegdatatotallength = receivePackage_.dataSize_ - sizeof(CameraGetImagePackage);
 						char *jpegdatas = receivePackage_.data_ + sizeof(CameraGetImagePackage);
-						if (cameraControlMessage_.imagesMat_.size() == receiveDataTmp.cameraAmount_)
+						if (cameraControlMessage_.images_jpeg_raw.size() == receiveDataTmp.cameraAmount_)
 						{
-							
+
 							for (int cameraIndex = 0; cameraIndex < receiveDataTmp.cameraAmount_; cameraIndex++)
 							{
 								int32_t jpegdatalength = 0;
 								memcpy(&jpegdatalength, jpegdatas, sizeof(int32_t));
 								jpegdatas = jpegdatas + sizeof(int32_t);
-								//cv::Mat rawData = cv::Mat(1, jpegdatalength, CV_8UC1, jpegdatas);
-								//cv::Mat img = cv::imdecode(rawData, CV_LOAD_IMAGE_COLOR);
-
-								
-								cv::Mat img_h;
-								clock_t start, end;
-								start = clock();
-								//decoder.decode(reinterpret_cast<unsigned char*>(jpegdatas), jpegdatalength, *img);
-
-								//cv::cuda::resize(*img, *resizeimg, cv::Size(512, 512));
-								//end = clock();
-								//resizeimg->download(img_h);
-								//cv::imshow("1", img_h);
-								//cv::waitKey(0);
-
-								//float waitTime = (double)(end - start) / CLOCKS_PER_SEC * 1000;
-								//cameraControlMessage_.waitTime_ = waitTime;
-								//jpegdatas = jpegdatas + jpegdatalength;
-								*cameraControlMessage_.imagesMat_[cameraIndex] = img_h;
+								memcpy(cameraControlMessage_.images_jpeg_raw[cameraIndex], jpegdatas, jpegdatalength);
+								//cameraControlMessage_.images_[cameraIndex]->length = jpegdatalength;
+								*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
+								jpegdatas = jpegdatas + jpegdatalength;
 							}
-																					
+
 						}
-						cameraControlMessage_.imageSize_ = jpegdatatotallength;						
-//						if (cameraControlMessage_.imageMat_ != NULL) {
-//							int32_t rows = (*cameraControlMessage_.imageMat_).rows;
-//							int32_t cols = (*cameraControlMessage_.imageMat_).cols;
-//#pragma omp parallel for
-//							for (int32_t r = 0; r < rows; ++r) {
-//								char *src = receivePackage_.data_ + sizeof(CameraGetImagePackage) + r*cols;
-//								uint8_t *dst = (*cameraControlMessage_.imageMat_).ptr<uint8_t>(r);
-//								memcpy(dst, src, cols);
-//								//dstImageAt.at<Vec3b>(i,j)[0]
-//							}
-//                     }
-						
+						cameraControlMessage_.imageSize_ = jpegdatatotallength;
 					}
 				}
 				emit OperationFinished(cameraControlMessage_);
 			}
 			else {
+				//TODO: delete this part
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
@@ -492,47 +466,27 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 								cameraControlMessage_.imageResizedWidth_ = receiveDataTmp.resizedWidth_;
 								cameraControlMessage_.imageResizedHeight_ = receiveDataTmp.resizedHeight_;
 								cameraControlMessage_.cameraAmount_ = receiveDataTmp.cameraAmount_;
-								if (cameraControlMessage_.imagesMat_.size() != 0)
+								if (cameraControlMessage_.images_jpeg_raw.size() != 0)
 								{
-									cameraControlMessage_.imagesMat_.clear();
+									cameraControlMessage_.images_jpeg_raw.clear();
 								}
 								int32_t jpegdatatotallength = receivePackage_.dataSize_ - sizeof(CameraGetImagePackage);
 								char *jpegdatas = receivePackage_.data_ + sizeof(CameraGetImagePackage);
-								if (cameraControlMessage_.imagesMat_.size() == receiveDataTmp.cameraAmount_)
+								if (cameraControlMessage_.images_jpeg_raw.size() == receiveDataTmp.cameraAmount_)
 								{
 									for (int cameraIndex = 0; cameraIndex < receiveDataTmp.cameraAmount_; cameraIndex++)
 									{
 										int32_t jpegdatalength = 0;
 										memcpy(&jpegdatalength, jpegdatas, sizeof(int32_t));
 										jpegdatas = jpegdatas + sizeof(int32_t);
-										//cv::Mat rawData = cv::Mat(1, jpegdatalength, CV_8UC1, jpegdatas);
-										//cv::Mat img = cv::imdecode(rawData, CV_LOAD_IMAGE_COLOR);
-										
-										cv::Mat img_h;
-										//decoder.decode(reinterpret_cast<unsigned char*>(jpegdatas), jpegdatalength, *img);
-										//img->download(img_h);
+										//memcpy(cameraControlMessage_.images_[cameraIndex]->data, jpegdatas, jpegdatalength);
+										//cameraControlMessage_.images_[cameraIndex]->length = jpegdatalength;
+										memcpy(cameraControlMessage_.images_jpeg_raw[cameraIndex], jpegdatas, jpegdatalength);
+										*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
 										jpegdatas = jpegdatas + jpegdatalength;
-										*cameraControlMessage_.imagesMat_[cameraIndex] = img_h;
 									}
 								}
 								cameraControlMessage_.imageSize_ = jpegdatatotallength;
-								//if (cameraControlMessage_.imageMat_ != NULL && ((*cameraControlMessage_.imageMat_).cols == cameraControlMessage_.imageResizedWidth_) && ((*cameraControlMessage_.imageMat_).rows == cameraControlMessage_.imageResizedHeight_)) {
-								//	int32_t rows = (*cameraControlMessage_.imageMat_).rows;
-								//	//							int32_t cols = (*cameraControlMessage_.imageMat_).cols;
-								//	//#pragma omp parallel for
-								//	//							for (int32_t r = 0; r < rows; ++r) {
-								//	//								char *src = receivePackage_.data_ + sizeof(CameraGetImagePackage) + r*cols;
-								//	//								uint8_t *dst = (*cameraControlMessage_.imageMat_).ptr<uint8_t>(r);
-								//	//								memcpy(dst, src, cols);
-								//	//								//dstImageAt.at<Vec3b>(i,j)[0]
-								//	//							}
-								//	int32_t jpegdatalength = receivePackage_.dataSize_ - sizeof(CameraGetImagePackage);
-								//	char *jpegdatas = receivePackage_.data_ + sizeof(CameraGetImagePackage);
-								//	cv::Mat rawData = cv::Mat(1, jpegdatalength, CV_8UC1, jpegdatas);
-								//	cv::Mat img = cv::imdecode(rawData, CV_LOAD_IMAGE_COLOR);
-								//	*cameraControlMessage_.imageMat_ = img;
-								//	cameraControlMessage_.imageSize_ = jpegdatalength;
-								//}
 							}
 						}
 						emit OperationFinished(cameraControlMessage_);
@@ -681,7 +635,7 @@ CameraCommunication::CameraCommunication()
 	updateTimer = new QTimer(this);
 	QObject::connect(updateTimer, SIGNAL(timeout()), this, SLOT(TimerTimeout()));
 	updateTimer->setInterval(updateTimerInterval);
-	updateTimer->start();
+	//updateTimer->start();
 }
 
 

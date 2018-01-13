@@ -17,16 +17,15 @@
 			
 			
 // opencv
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/cudaimgproc.hpp>
 
-// cuda
 #ifdef _WIN32
 #include <windows.h>
 #include <direct.h>
 #endif
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
+
+
 
 namespace cam {
 
