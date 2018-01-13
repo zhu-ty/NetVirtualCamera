@@ -673,10 +673,13 @@ namespace npp {
 	@param unsigned char* jpegdata: input jpeg data
 	@param size_t input_datalength: input jpeg data length
 	@param cv::cuda::GpuMat: output gpu mat image
+	@param int type: output pixel format type:
+			0: BGR 
+			1:  RGB (default)
 	@return int
 	*/
 	int NPPJpegCoder::decode(unsigned char* jpegdata, size_t input_datalength,
-		cv::cuda::GpuMat & outimg) {
+		cv::cuda::GpuMat & outimg, int type) {
 		// init state
 		NppiDCTState *pDCTState;
 		NPP_CHECK_NPP(nppiDCTInitAlloc(&pDCTState));
@@ -796,6 +799,20 @@ namespace npp {
 			}
 			nMarker = nextMarker(jpegdata, nPos, input_datalength);
 		}
+
+#ifdef MEASURE_KERNEL_TIME
+		cudaEventCreate(&stop);
+		cudaEventRecord(stop, 0);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&elapsedTime, start, stop);
+		printf("JPEG decode CPU step: (file:%s, line:%d) elapsed time : %f ms\n", __FILE__, __LINE__, elapsedTime);
+#endif
+
+#ifdef MEASURE_KERNEL_TIME
+		cudaEventCreate(&start);
+		cudaEventRecord(start, 0);
+#endif
+
 		// Copy DCT coefficients and Quantization Tables from host to device
 		for (int i = 0; i < 4; ++i) {
 			NPP_CHECK_CUDA(cudaMemcpyAsync(pdQuantizationTables + i * 64, aQuantizationTables[i].aTable, 64, cudaMemcpyHostToDevice));
@@ -817,15 +834,21 @@ namespace npp {
 		osize.width = this->width;
 		osize.height = this->height;
 
-		NPP_CHECK_NPP(nppiYUV420ToBGR_8u_P3C3R(apSrcImage, aSrcImageStep, outimg.data, outimg.step,
-			osize));
+		if (type == 0) {
+			NPP_CHECK_NPP(nppiYUV420ToBGR_8u_P3C3R(apSrcImage, aSrcImageStep, outimg.data, outimg.step,
+				osize));
+		}
+		else if (type == 1){
+			NPP_CHECK_NPP(nppiYUV420ToRGB_8u_P3C3R(apSrcImage, aSrcImageStep, outimg.data, outimg.step,
+				osize));
+		}
 
 #ifdef MEASURE_KERNEL_TIME
 		cudaEventCreate(&stop);
 		cudaEventRecord(stop, 0);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&elapsedTime, start, stop);
-		printf("JPEG decode: (file:%s, line:%d) elapsed time : %f ms\n", __FILE__, __LINE__, elapsedTime);
+		printf("JPEG decode GPU step: (file:%s, line:%d) elapsed time : %f ms\n", __FILE__, __LINE__, elapsedTime);
 #endif
 		// release gpu memory
 		nppiDCTFree(pDCTState);

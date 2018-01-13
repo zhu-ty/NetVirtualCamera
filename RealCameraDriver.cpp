@@ -28,6 +28,8 @@ namespace cam {
 		for (;;) {
 			begin_time = clock();
 			// check status
+			if (thexit == 1)
+				break;
 			if (thStatus[camInd] == 0)
 				break;
 			// capture image
@@ -84,6 +86,8 @@ namespace cam {
 			// begin time
 			begin_time = clock();
 			// check status
+			if (thexit == 1)
+				break;
 			if (thStatus[camInd] == 0)
 				break;
 			while (thStatus[camInd] == 2) {
@@ -97,10 +101,10 @@ namespace cam {
 			// capture image
 			this->captureFrame(camInd, bufferImgs_singleframe[camInd]);
 			// copy data to GPU
-			cudaMemcpyAsync(this->bufferImgs_cuda[camInd], bufferImgs_singleframe[camInd].data,
+			cudaMemcpy(this->bufferImgs_cuda[camInd], bufferImgs_singleframe[camInd].data,
 				sizeof(uchar) * camInfos[camInd].width * camInfos[camInd].height,
-				cudaMemcpyHostToDevice, stream);
-			cudaStreamSynchronize(stream);
+				cudaMemcpyHostToDevice);
+			//cudaStreamSynchronize(stream);
 			// end time
 			end_time = clock();
 			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
@@ -112,7 +116,7 @@ namespace cam {
 					camInd, static_cast<long long>(waitTime));
 			}
 			if (waitTime > 0) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>(waitTime)));
+				SysUtil::sleep(waitTime);
 			}
 		}
 		cudaStreamDestroy(stream);
@@ -137,6 +141,8 @@ namespace cam {
 			hasFrame = false;
 			// check if threads are need to exit
 			int sum = std::accumulate(thBufferInds.begin(), thBufferInds.end(), 0);
+			if (thexit == 1)
+				break;
 			if (sum == bufferSize * this->cameraNum)
 				break;
 			// compress images
@@ -320,6 +326,7 @@ namespace cam {
 			ths.resize(this->cameraNum);
 			thStatus.resize(this->cameraNum);
 			thBufferInds.resize(this->cameraNum);
+			thexit = 0;
 			for (size_t i = 0; i < this->cameraNum; i++) {
 				thStatus[i] = 0;
 				thBufferInds[i] = 0;
@@ -364,10 +371,12 @@ namespace cam {
 		for (size_t i = 0; i < this->cameraNum; i++) {
 			thStatus[i] = 0;
 		}
+		thexit = 1;
 		// make sure all the threads have exited
 		if (this->camPurpose == cam::GenCamCapturePurpose::Streaming) {
 			if (isCompressThreadRunning == true) {
 				thJPEG.join();
+				isCompressThreadRunning = false;
 				sprintf(info, "Compression thread exit successfully !");
 				SysUtil::infoOutput(std::string(info));
 			}
@@ -377,6 +386,7 @@ namespace cam {
 					sprintf(info, "Capturing thread %d exit successfully !", i);
 					SysUtil::infoOutput(std::string(info));
 				}
+				isCaptureThreadRunning = false;
 			}
 		}
 		// release memory

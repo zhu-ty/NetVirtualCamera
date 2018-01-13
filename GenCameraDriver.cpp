@@ -65,32 +65,6 @@ namespace cam {
 		return 0;
 	}
 
-	
-	/**
-	@brief capture one frame
-	@param std::vector<Imagedata> & imgs: output captured images
-	if in single mode, memory of image mats should be malloced
-	before using this function
-	@return int
-	*/
-	int GenCamera::captureFrame(std::vector<Imagedata> & imgs) {
-		if (captureMode == GenCamCaptureMode::Continous ||
-			captureMode == GenCamCaptureMode::ContinousTrigger) {
-			// get images from buffer
-			for (size_t camInd = 0; camInd < this->cameraNum; camInd++) {
-				int index = (thBufferInds[camInd] - 1 + bufferSize) % bufferSize;
-				imgs[camInd] = bufferImgs[index][camInd];
-			}
-
-		}
-		else if (captureMode == GenCamCaptureMode::Single ||
-			captureMode == GenCamCaptureMode::SingleTrigger) {
-			SysUtil::errorOutput("Single mode is not implemented yet !");
-			exit(-1);
-		}
-		return 0;
-	}
-
 	/*************************************************************/
 	/*        function to save capture images to files           */
 	/*************************************************************/
@@ -140,7 +114,7 @@ namespace cam {
 				for (size_t j = 0; j < this->bufferSize; j++) {
 					coder.decode(reinterpret_cast<uchar*>(this->bufferImgs[j][i].data), 
 						this->bufferImgs[j][i].length,
-						img_d);
+						img_d, 0);
 					img_d.download(img);
 					writer << img;
 				}
@@ -166,6 +140,31 @@ namespace cam {
 	*/
 	int GenCamera::setMappingVector(std::vector<size_t> mappingVector) {
 		this->mappingVector = mappingVector;
+		return 0;
+	}
+
+	/**
+	@brief capture one frame
+	@param std::vector<Imagedata> & imgs: output captured images
+	if in single mode, memory of image mats should be malloced
+	before using this function
+	@return int
+	*/
+	int GenCamera::captureFrame(std::vector<Imagedata> & imgs) {
+		if (captureMode == GenCamCaptureMode::Continous ||
+			captureMode == GenCamCaptureMode::ContinousTrigger) {
+			// get images from buffer
+			for (size_t camInd = 0; camInd < this->cameraNum; camInd++) {
+				int index = (thBufferInds[camInd] - 1 + bufferSize) % bufferSize;
+				imgs[camInd] = bufferImgs[index][camInd];
+			}
+
+		}
+		else if (captureMode == GenCamCaptureMode::Single ||
+			captureMode == GenCamCaptureMode::SingleTrigger) {
+			SysUtil::errorOutput("Single mode is not implemented yet !");
+			exit(-1);
+		}
 		return 0;
 	}
 
