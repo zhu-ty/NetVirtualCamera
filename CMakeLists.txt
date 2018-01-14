@@ -74,6 +74,8 @@ set(MY_HEADER_FILES
     NetVirtualCamera/NetCameraCore.h
     NetVirtualCamera/NetCameraHeader.h
     NetVirtualCamera/NetVirtualCamera.h
+
+    qthread_main.h
 )
 
 set(MY_SOURCE_FILES 
@@ -93,6 +95,8 @@ set(MY_SOURCE_FILES
     RealCameraDriver.cpp
     # main function
     main.cpp
+
+    qthread_main.cpp
 )
 
 # source_group("PointGrey" FILES
@@ -119,6 +123,7 @@ source_group("cuda" FILES
     cuda/NPPJpegCoderKernel.h
     cuda/NPPJpegCoderKernel.cu
 )
+
 
 include_directories(
 	${PROJECT_SOURCE_DIR}	

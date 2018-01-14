@@ -122,7 +122,7 @@ namespace cam {
 		this->camModel = CameraModel::Network;
 		communication_camera = new CameraCommunication();
 		communication_camera->moveToThread(&communication_thread);
-		communication_camera->StartStopTimer(true);
+		//communication_camera->StartStopTimer(true);
 		//Qt Connect
 		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //自定义信号与槽函数类型
 		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
@@ -132,7 +132,19 @@ namespace cam {
 			SLOT(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
 			Qt::QueuedConnection);
 		QObject::connect(communication_camera, SIGNAL(OperationFinished(CameraControlMessage &)),
-			this, SLOT(OperationFinished(CameraControlMessage &)), Qt::QueuedConnection);
+			this, SLOT(OperationFinished(CameraControlMessage &)), Qt::DirectConnection);
+
+		//QObject::connect(this, SIGNAL(LoadConfigFile(QString)),
+		//	communication_camera, SLOT(LoadConfigFile(QString)), Qt::QueuedConnection);
+		//QObject::connect(communication_camera, SIGNAL(LoadConfigFileFinished(QString, bool, std::vector<CameraServerUnitTypeDef> &)),
+		//	this, SLOT(LoadConfigFileFinished(QString, bool, std::vector<CameraServerUnitTypeDef> &)), Qt::QueuedConnection);
+
+		QObject::connect(this, SIGNAL(LoadConfigFile(QString)),
+			communication_camera, SLOT(LoadConfigFile(QString)), Qt::QueuedConnection);
+		QObject::connect(communication_camera, 
+			SIGNAL(LoadConfigFileFinished(QString, bool, std::vector<CameraServerUnitTypeDef> &)),
+			this, 
+			SLOT(LoadConfigFileFinished(QString, bool, std::vector<CameraServerUnitTypeDef> &)), Qt::DirectConnection);
 
 	}
 	GenCameraNETVIR::~GenCameraNETVIR() {}
@@ -326,8 +338,30 @@ namespace cam {
 	int GenCameraNETVIR::init() {
 		//ths.resize(this->cameraNum);
 		//thStatus.resize(this->cameraNum);
-		communication_camera->LoadConfigFile(QString::fromStdString(communication_camera->configFileName_), serverVec_);
+		//communication_camera->LoadConfigFile(QString::fromStdString(communication_camera->configFileName_), serverVec_);
 		communication_thread.start(QThread::NormalPriority);
+		config_file_status = 0;
+		emit LoadConfigFile(QString::fromStdString(communication_camera->configFileName_));
+		for (int i = 0;;)
+		{
+			if (config_file_status == 1)
+				break;
+			else if (config_file_status == -1)
+			{
+				SysUtil::errorOutput("GenCameraNETVIR::init config file load error! check config file config.xml");
+				return -1;
+			}
+			else if (i > wait_time_local)
+			{
+				SysUtil::warningOutput("GenCameraNETVIR::init wait too long, check config file");
+				break;
+			}
+			else
+			{
+				SysUtil::sleep(5);
+				i += 5;
+			}
+		}
 		this->cameraNum = 0;
 		for (int i = 0; i < serverVec_.size(); i++)
 		{
@@ -379,13 +413,32 @@ namespace cam {
 			SysUtil::warningOutput("GenCameraNETVIR::startCapture init first please");
 			return -1;
 		}
-		if (serverVec_.size() == NULL || !serverVec_[0].connectedFlag_) {//TODO: should check every server!
+		if (serverVec_.size() == NULL ) {
 			std::ostringstream strTmp("");
 			strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
 			SysUtil::warningOutput(strTmp.str());
 		}
 		else
 		{
+			for (int i = 0;;)
+			{
+				if (serverVec_[0].connectedFlag_ == true)//TODO: should check every server!
+					break;
+				else if (i > wait_time_local * 10)
+				{
+					SysUtil::warningOutput("GenCameraNETVIR::startCapture connection wait too long, check your network");
+					std::ostringstream strTmp("");
+					strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
+					SysUtil::warningOutput(strTmp.str());
+					return -1;
+				}
+				else
+				{
+					i += 5;
+					SysUtil::sleep(5);
+				}
+
+			}
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
 				cameraControlMessage_.requestorId_ = id_;
@@ -406,10 +459,10 @@ namespace cam {
 			{
 				if (this->isCapture == true)
 					break;
-				else if (i > wait_time_local)
+				else if (i > wait_time_local * 10)
 				{
 					SysUtil::warningOutput("GenCameraNETVIR::startCapture wait too long, check your network");
-					break;
+					return -1;
 				}
 				else
 				{
@@ -655,10 +708,8 @@ namespace cam {
 			SysUtil::errorOutput("Capturing thread is not started !");
 			return -1;
 		}
-		for (size_t i = 0; i < this->cameraNum; i++) {
-			ths.join();
-			SysUtil::infoOutput("GenCameraNETVIR::waitForRecordFinish Capturing thread exit successfully !");
-		}
+		ths.join();
+		SysUtil::infoOutput("GenCameraNETVIR::waitForRecordFinish Capturing thread exit successfully !");
 		isCaptureThreadRunning = false;
 		return 0;
 	}
@@ -727,5 +778,21 @@ namespace cam {
 		}
 		SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads camera driver released successfully!");
 		return 0;
+	}
+	/**
+	@brief Load Config file finished in child thread
+	@param QString _filePath: File name
+	@param bool _flag: success or not
+	@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+	*/
+	void GenCameraNETVIR::LoadConfigFileFinished(QString _filePath, bool _flag, std::vector<CameraServerUnitTypeDef>& _serverVec)
+	{
+		if (_flag == true)
+		{
+			config_file_status = 1;
+			serverVec_ = _serverVec;
+		}
+		else
+			config_file_status = -1;
 	}
 }

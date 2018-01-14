@@ -635,7 +635,7 @@ CameraCommunication::CameraCommunication()
 	updateTimer = new QTimer(this);
 	QObject::connect(updateTimer, SIGNAL(timeout()), this, SLOT(TimerTimeout()));
 	updateTimer->setInterval(updateTimerInterval);
-	//updateTimer->start();
+	updateTimer->start();
 }
 
 
@@ -709,7 +709,7 @@ BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<Cam
 	return No_Error;
 }
 
-BaseErrorType CameraCommunication::LoadConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_servervec)
+BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 {
 	///采用opencv的yml文件保存参数,保存路径为当前工作目录下
 	///注意读取多级节点时要采用iterator，各节点名不要带":"
@@ -772,9 +772,9 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file, std::vector<Cam
 		serverVecTmp.push_back(serverUnitTmp);
 	}
 	UpdateLocalParameters(serverVecTmp);
-	_servervec = serverVecTmp;
+	//_servervec = serverVecTmp;
 	configFileTmp.release();
-	emit LoadConfigFileFinished(_file,true, serverVecTmp);
+	emit LoadConfigFileFinished(_file, true, serverVecTmp);
 	return No_Error;
 }
 

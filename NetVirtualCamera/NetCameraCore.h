@@ -76,7 +76,7 @@ signals:
 	void OperationFinished(CameraControlMessage &_cameraControlMessage);														//用于发送给各请求者
 
 public slots:
-	BaseErrorType LoadConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_servervec);
+	BaseErrorType LoadConfigFile(QString _file);
 	BaseErrorType SaveConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_serverVec);
 	void StartStopTimer(bool _flag);
 	void TimerTimeout(void);						

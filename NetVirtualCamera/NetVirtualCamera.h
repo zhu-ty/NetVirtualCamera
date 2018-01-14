@@ -46,6 +46,11 @@ namespace cam {
 		// 1 : waiting
 		// -1 : receive done (including bad receive)
 		std::vector<int> image_receiving_flag;
+		// check if config was loaded properly
+		// 0 : loading
+		// 1 : success
+		// -1 : failed
+		int config_file_status = -1;
 	public:
 
 	private:
@@ -223,12 +228,17 @@ namespace cam {
 			/***********************************************************/
 		signals :
 			/**
-			@brief Network CameraControl Send (In main thread)
+			@brief Network CameraControl Send
 			@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
 			@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
 			*/
 			void StartOperation(CameraControlMessage &_cameraControlMessage,
 				std::vector<CameraServerUnitTypeDef> &_serverVec);
+			/**
+			@brief Load Config file in child thread
+			@param QString _file: File name
+			*/
+			void LoadConfigFile(QString _file);
 
 		public slots:
 			/**
@@ -236,6 +246,13 @@ namespace cam {
 			@param CameraControlMessage & _cameraControlMessage: Server's respond pack
 			*/
 			void OperationFinished(CameraControlMessage &_cameraControlMessage);
+			/**
+			@brief Load Config file finished in child thread
+			@param QString _filePath: File name
+			@param bool _flag: success or not
+			@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
+			*/
+			void LoadConfigFileFinished(QString _filePath, bool _flag, std::vector<CameraServerUnitTypeDef> &_serverVec);
 	};
 
 };
