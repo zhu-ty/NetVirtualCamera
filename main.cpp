@@ -9,5 +9,6 @@ int main(int argc, char* argv[]) {
 	MyThread mt;
 	mt.start();
 	return app.exec();
+	//return 0;
 }
 

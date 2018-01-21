@@ -630,7 +630,7 @@ CameraCommunication::CameraCommunication()
 	}        //默认取高八位
 	//加载默认的配置文件
 
-	//LoadConfigFile(QString::fromStdString(configFileName_));
+	LoadConfigFile(QString::fromStdString(configFileName_));
 
 	updateTimer = new QTimer(this);
 	QObject::connect(updateTimer, SIGNAL(timeout()), this, SLOT(TimerTimeout()));

@@ -194,7 +194,7 @@ namespace cam {
 								cameraIsConnect = false;
 						}
 						if (cameraIsConnect == true) {
-							SysUtil::infoOutput("Connected!");
+							//SysUtil::infoOutput("Connected!");
 							////if (!isInitial)StartOperation();
 						}
 						break;
@@ -423,7 +423,10 @@ namespace cam {
 			for (int i = 0;;)
 			{
 				if (serverVec_[0].connectedFlag_ == true)//TODO: should check every server!
+				{
+					SysUtil::infoOutput("Connected!");
 					break;
+				}
 				else if (i > wait_time_local * 10)
 				{
 					SysUtil::warningOutput("GenCameraNETVIR::startCapture connection wait too long, check your network");
