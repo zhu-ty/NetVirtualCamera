@@ -6,7 +6,7 @@ Project from [yuanxy92/GenCameraDriver](https://github.com/yuanxy92/GenCameraDri
 - OpenCV >= 3.0
 - Windows Visual Studio 2015 (Linux or other Visual Studio Version should be OK, but untested, C++11 feature is needed for multi-threads feature ), do not use Visual Studio 2017 now!
 - Qt >= 5 (Will be removed in the future)
-- Cuda 8.0
+- Cuda 9.1
 - OpenGL will be used in the future to decompress the jpeg data and render images.
 
 ## Notice
