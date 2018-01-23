@@ -389,8 +389,8 @@ namespace cam {
 		for (int i = 0; i < this->cameraNum; i++)
 		{
 			camInfos[i].sn = "000000";
-			camInfos[i].width = 2048;
-			camInfos[i].height = 2048;
+			camInfos[i].width = 4096;
+			camInfos[i].height = 3000;
 			camInfos[i].fps = 10.0f;
 			camInfos[i].autoExposure = Status::on;
 			this->getBayerPattern(i, camInfos[i].bayerPattern);
