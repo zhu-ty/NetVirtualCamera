@@ -15,7 +15,7 @@
 
 //#define CAMERA_COMMAND_DATA_MAX_SIZE  (8192+2048)					///通信命令数据包最大长度
 #define CAMERA_COMMAND_DATA_MAX_SIZE  2048			///通信命令数据包最大长度
-#define CAMERA_IMAGE_DATA_MAX_SIZE    (2048*2048*4+2048)		///图像数据最大长度
+#define CAMERA_IMAGE_DATA_MAX_SIZE    (4096*4096*4+2048)		///图像数据最大长度
 
 typedef struct
 {
