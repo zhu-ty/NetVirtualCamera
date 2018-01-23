@@ -10,7 +10,7 @@ Project from [yuanxy92/GenCameraDriver](https://github.com/yuanxy92/GenCameraDri
 - OpenGL will be used in the future to decompress the jpeg data and render images.
 
 ## Notice
-Not fully done yet, project is designed to be a remote camera driver, this shoule be used with zhu-ty/CameraDriver2
+Not fully done yet, project is designed to be a remote camera driver, this shoule be used with zhu-ty/NetVirtualCameraServer
 
 There may be other bugs. QAQ
 
