@@ -392,9 +392,9 @@ namespace cam {
 				camInfos[i].sn = "17392138";
 			else if(i == 1)
 				camInfos[i].sn = "17391723";
-			else if(i == 1)
+			else if(i == 2)
 				camInfos[i].sn = "17392140";
-			else if(i == 1)
+			else if(i == 3)
 				camInfos[i].sn = "17391749";
 			else 
 				camInfos[i].sn = "00000000";
@@ -687,7 +687,7 @@ namespace cam {
 				// pre-malloc jpeg data
 				for (size_t i = 0; i < this->cameraNum; i++) {
 					// pre-calculate compressed jpeg data size
-					size_t maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * sizeRatio);
+					size_t maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * 0.5);
 					for (size_t j = 0; j < bufferSize; j++) {
 						this->bufferImgs[j][i].data = new char[maxLength];
 						this->bufferImgs[j][i].maxLength = maxLength;
