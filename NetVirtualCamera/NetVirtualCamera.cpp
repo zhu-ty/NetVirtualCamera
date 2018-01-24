@@ -124,7 +124,7 @@ namespace cam {
 		communication_camera->moveToThread(&communication_thread);
 		//communication_camera->StartStopTimer(true);
 		//Qt Connect
-		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //×Ô¶¨ÒåÐÅºÅÓë²Ûº¯ÊýÀàÐÍ
+		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 		QObject::connect(this,
 			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
@@ -390,8 +390,14 @@ namespace cam {
 		{
 			if(i == 0)
 				camInfos[i].sn = "17392138";
-			else
+			else if(i == 1)
 				camInfos[i].sn = "17391723";
+			else if(i == 1)
+				camInfos[i].sn = "17392140";
+			else if(i == 1)
+				camInfos[i].sn = "17391749";
+			else 
+				camInfos[i].sn = "00000000";
 			camInfos[i].width = 4096;
 			camInfos[i].height = 3000;
 			camInfos[i].fps = 10.0f;
@@ -456,7 +462,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			//isCapture moved to OperationFinished
@@ -507,7 +513,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			for (int i = 0;;)
