@@ -124,7 +124,7 @@ namespace cam {
 		communication_camera->moveToThread(&communication_thread);
 		//communication_camera->StartStopTimer(true);
 		//Qt Connect
-		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //×Ô¶¨ÒåÐÅºÅÓë²Ûº¯ÊýÀàÐÍ
+		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 		QObject::connect(this,
 			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
@@ -453,7 +453,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			//isCapture moved to OperationFinished
@@ -504,7 +504,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			for (int i = 0;;)
@@ -772,10 +772,10 @@ namespace cam {
 		// make sure all the threads have exited
 		if (this->camPurpose == cam::GenCamCapturePurpose::Streaming) {
 			if (isCaptureThreadRunning == true) {
-				for (size_t i = 0; i < this->cameraNum; i++) {
-					ths.join();
-					SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads Capturing thread exit successfully!");
-				}
+				//for (size_t i = 0; i < this->cameraNum; i++) {
+				ths.join();
+				SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads Capturing thread exit successfully!");
+				//}
 				isCaptureThreadRunning = false;
 			}
 		}
