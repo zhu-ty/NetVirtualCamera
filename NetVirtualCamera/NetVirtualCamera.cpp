@@ -124,7 +124,7 @@ namespace cam {
 		communication_camera->moveToThread(&communication_thread);
 		//communication_camera->StartStopTimer(true);
 		//Qt Connect
-		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //×Ô¶¨ÒåÐÅºÅÓë²Ûº¯ÊýÀàÐÍ
 		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 		QObject::connect(this,
 			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
@@ -388,7 +388,10 @@ namespace cam {
 		//TODO: move static version to dynamic version
 		for (int i = 0; i < this->cameraNum; i++)
 		{
-			camInfos[i].sn = "000000";
+			if(i == 0)
+				camInfos[i].sn = "17392138";
+			else
+				camInfos[i].sn = "17391723";
 			camInfos[i].width = 4096;
 			camInfos[i].height = 3000;
 			camInfos[i].fps = 10.0f;
@@ -453,7 +456,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			//isCapture moved to OperationFinished
@@ -504,7 +507,7 @@ namespace cam {
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
+				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1´ú±íÐÞ¸ÄËùÓÐ²ÎÊý
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
 			for (int i = 0;;)
@@ -773,8 +776,8 @@ namespace cam {
 		if (this->camPurpose == cam::GenCamCapturePurpose::Streaming) {
 			if (isCaptureThreadRunning == true) {
 				//for (size_t i = 0; i < this->cameraNum; i++) {
-				ths.join();
-				SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads Capturing thread exit successfully!");
+					ths.join();
+					SysUtil::infoOutput("GenCameraNETVIR::stopCaptureThreads Capturing thread exit successfully!");
 				//}
 				isCaptureThreadRunning = false;
 			}
