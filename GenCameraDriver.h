@@ -495,6 +495,13 @@ namespace cam {
 		*/
 		int captureFrameWithMapping(std::vector<Imagedata> & imgs);
 
+		/**
+		@brief get camera infos list with mapping
+		@param std::vector<cam::GenCamInfo> & camInfos: output camera info list
+		@return int
+		*/
+		int getCameraInfoListsWithMapping(std::vector<cam::GenCamInfo> & camInfos);
+
 	};
 
 	/**
