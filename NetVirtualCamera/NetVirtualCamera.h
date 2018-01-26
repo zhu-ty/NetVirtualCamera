@@ -33,7 +33,7 @@ namespace cam {
 		// Client ID
 		int id_ = -1;
 		// Local wait time for each operation (ms)
-		int wait_time_local = 5000;
+		int wait_time_local = 10000;
 		// threads to capture images
 		std::thread ths;
 		bool isCaptureThreadRunning;
@@ -41,16 +41,18 @@ namespace cam {
 		// thexit == 1, exit thread
 		// thexit == 0, keep running
 		int thexit;
-		// used by wait_for_image_receive();
+		// used by wait_for_receive();
 		// 0 : unused
 		// 1 : waiting
 		// -1 : receive done (including bad receive)
-		std::vector<int> image_receiving_flag;
+		std::vector<int> server_receiving_flag;
 		// check if config was loaded properly
 		// 0 : loading
 		// 1 : success
 		// -1 : failed
 		int config_file_status = -1;
+		// received data from each server
+		std::vector<GenCameraControlData> data_receive;
 	public:
 
 	private:
@@ -61,11 +63,9 @@ namespace cam {
 		*/
 		void capture_thread_JPEG_();
 		/**
-		@brief thread capturing function (jpeg buffer)
-		used for continous mode
-		thread function to get images from camera
+		@brief wait for all server respond
 		*/
-		int wait_for_image_receive();
+		int wait_for_receive(int times  = 1);
 
 	public:
 		GenCameraNETVIR();

@@ -115,7 +115,24 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Open_Camera) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						int readbyteSize = tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
+						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						//	读取返回值
+						if (receivePackage_.status_ == Communication_Camera_Open_Camera_Ok) {
+							int dataAmount = receivePackage_.dataSize_;
+							if (dataAmount > 0 && dataAmount< CAMERA_IMAGE_DATA_MAX_SIZE) {
+								int readedSize = 0;
+								while (readedSize<dataAmount) {
+									if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
+										readedSize += tcpSocket_->read(receivePackage_.data_ + readedSize, dataAmount - readedSize);
+									}
+									else {
+										receivePackage_.status_ = Communication_Camera_Action_Overtime;
+										return receivePackage_.status_;
+									}
+								}
+							}
+						}
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Trigger_Continous) {
@@ -223,7 +240,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 			break;
 		}
 		case Communication_Camera_Open_Camera: {				//open camera
-			if (!operateAllFlag) {
+			//if (!operateAllFlag) {
 				int boxIndex = _cameraControlMessage.boxIndex_;
 				int cameraIndex = _cameraControlMessage.cameraIndex_;
 				CameraOpenCameraPackage dataTmp;
@@ -245,48 +262,66 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 				dataTmp.triggerMode_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].triggerMode_;
 				memcpy(dataTmp.savePath_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].savePath_.c_str(), sizeof(dataTmp.savePath_));
 				memcpy(dataTmp.saveName_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveName_.c_str(), sizeof(dataTmp.saveName_));
+
+				memcpy(dataTmp.genfunc_c, _cameraControlMessage.genfunc_.c_str(), _cameraControlMessage.genfunc_.size());
+				dataTmp.genfunc_c[_cameraControlMessage.genfunc_.size()] = '\0';
+				memcpy(&dataTmp.gendata_c, &_cameraControlMessage.gendata_, sizeof(GenCameraControlData));
 				//memcpy(dataTmp.othersInfo_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].othersInfo_.c_str(), sizeof(dataTmp.othersInfo_));
 				sendPackage_.command_ = Communication_Camera_Open_Camera;
 				memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
 				cameraControlMessage_.status_ = SendData();
+				if (receivePackage_.status_ == Communication_Camera_Open_Camera_Ok) {
+					CameraOpenCameraPackage receiveDataTmp;
+					memcpy(&receiveDataTmp, receivePackage_.data_, sizeof(CameraOpenCameraPackage));
+					cameraControlMessage_.status_ = receivePackage_.status_;
+					cameraControlMessage_.boxIndex_ = receiveDataTmp.boxIndex_;
+					cameraControlMessage_.cameraIndex_ = receiveDataTmp.cameraIndex_;
+					cameraControlMessage_.imageType_ = receivePackage_.dataSize_;  
+					cameraControlMessage_.cameraAmount_ = receiveDataTmp.cameraAmount_;
+
+					std::string tmp_str(receiveDataTmp.genfunc_c);
+					cameraControlMessage_.genfunc_ = tmp_str;
+					cameraControlMessage_.gendata_ = receiveDataTmp.gendata_c;
+
+				}
 				cameraControlMessage_.boxIndex_ = boxIndex;
 				cameraControlMessage_.cameraIndex_ = cameraIndex;
 				emit OperationFinished(cameraControlMessage_);
-			}
-			else {			//操作当前服务器下的所有相机
-				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size();++i) {
-					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
-						int boxIndex = i;
-						int cameraIndex = j;
-						CameraOpenCameraPackage dataTmp;
-						dataTmp.operationIndex_ = _cameraControlMessage.openCameraOperationIndex_;
-						dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
-						dataTmp.boxIndex_ = boxIndex;
-						dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_.size();
-						dataTmp.cameraIndex_ = cameraIndex;
-						dataTmp.cameraId_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
-						dataTmp.width_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].width_;
-						dataTmp.height_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].height_;
-						dataTmp.exposure_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].exposure_;
-						dataTmp.gain_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].gain_;
-						dataTmp.brightness_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].brightness_;
-						dataTmp.contrast_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].contrast_;
-						dataTmp.bitLut_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].bitLut_;
-						dataTmp.saveFormat_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveFormat_;
-						dataTmp.skipNumber_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].skipNumber_;
-						dataTmp.triggerMode_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].triggerMode_;
-						memcpy(dataTmp.savePath_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].savePath_.c_str(), sizeof(dataTmp.savePath_));
-						memcpy(dataTmp.saveName_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveName_.c_str(), sizeof(dataTmp.saveName_));
-						//memcpy(dataTmp.othersInfo_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].othersInfo_.c_str(), sizeof(dataTmp.othersInfo_));
-						sendPackage_.command_ = Communication_Camera_Open_Camera;
-						memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
-						cameraControlMessage_.status_ = SendData();
-						cameraControlMessage_.boxIndex_ = boxIndex;
-						cameraControlMessage_.cameraIndex_ = cameraIndex;
-						emit OperationFinished(cameraControlMessage_);
-					}
-				}
-			}
+			//}
+			//else {			//操作当前服务器下的所有相机
+			//	for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size();++i) {
+			//		for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
+			//			int boxIndex = i;
+			//			int cameraIndex = j;
+			//			CameraOpenCameraPackage dataTmp;
+			//			dataTmp.operationIndex_ = _cameraControlMessage.openCameraOperationIndex_;
+			//			dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
+			//			dataTmp.boxIndex_ = boxIndex;
+			//			dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_.size();
+			//			dataTmp.cameraIndex_ = cameraIndex;
+			//			dataTmp.cameraId_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+			//			dataTmp.width_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].width_;
+			//			dataTmp.height_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].height_;
+			//			dataTmp.exposure_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].exposure_;
+			//			dataTmp.gain_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].gain_;
+			//			dataTmp.brightness_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].brightness_;
+			//			dataTmp.contrast_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].contrast_;
+			//			dataTmp.bitLut_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].bitLut_;
+			//			dataTmp.saveFormat_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveFormat_;
+			//			dataTmp.skipNumber_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].skipNumber_;
+			//			dataTmp.triggerMode_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].triggerMode_;
+			//			memcpy(dataTmp.savePath_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].savePath_.c_str(), sizeof(dataTmp.savePath_));
+			//			memcpy(dataTmp.saveName_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveName_.c_str(), sizeof(dataTmp.saveName_));
+			//			//memcpy(dataTmp.othersInfo_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].othersInfo_.c_str(), sizeof(dataTmp.othersInfo_));
+			//			sendPackage_.command_ = Communication_Camera_Open_Camera;
+			//			memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
+			//			cameraControlMessage_.status_ = SendData();
+			//			cameraControlMessage_.boxIndex_ = boxIndex;
+			//			cameraControlMessage_.cameraIndex_ = cameraIndex;
+			//			emit OperationFinished(cameraControlMessage_);
+			//		}
+			//	}
+			//}
 			break;
 		}
 		case Communication_Camera_Trigger_Continous: {			//trigger continous

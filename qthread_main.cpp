@@ -47,6 +47,7 @@ int record(int argc, char* argv[]) {
 	std::shared_ptr<cam::GenCamera> cameraPtr
 		= cam::createCamera(cam::CameraModel::Network);
 	cameraPtr->init();
+	cam::SysUtil::sleep(1000);
 	// set camera setting
 	//cam::SysUtil::sleep(5000);
 	cameraPtr->startCapture();
@@ -59,9 +60,14 @@ int record(int argc, char* argv[]) {
 	// set capturing setting
 	cameraPtr->setCamBufferType(cam::GenCamBufferType::JPEG);
 	cameraPtr->setJPEGQuality(85, 0.15);
+	cameraPtr->getCamInfos(camInfos);
+	cam::SysUtil::sleep(1000);
 	cameraPtr->setCaptureMode(cam::GenCamCaptureMode::Continous, 100);
 	cameraPtr->setCapturePurpose(cam::GenCamCapturePurpose::Recording);
 	cameraPtr->setVerbose(true);
+
+	cameraPtr->getCamInfos(camInfos);
+
 	cam::SysUtil::sleep(1000);
 	cameraPtr->startCaptureThreads();
 	// wait for recoding to finish

@@ -47,10 +47,11 @@ namespace cam {
 						&bufferImgs[thBufferInds[camInd]][camInd].length);
 					camInd++;
 				}
+				server_receiving_flag[serverIndex] = 1;
 				emit StartOperation(cameraControlMessage_, serverVec_);
-				image_receiving_flag[serverIndex] = 1;
+				
 			}
-			wait_for_image_receive();
+			wait_for_receive();
 			// end time
 			end_time = clock();
 			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
@@ -78,11 +79,11 @@ namespace cam {
 		SysUtil::infoOutput("GenCameraNETVIR::capture_thread_JPEG_:: Capturing thread for camera all finish, exit successfully !");
 	}
 
-	int GenCameraNETVIR::wait_for_image_receive()
+	int GenCameraNETVIR::wait_for_receive(int times)
 	{
 		for (int j = 0; j < serverVec_.size(); j++)
 		{
-			if (image_receiving_flag[j] == 0)
+			if (server_receiving_flag[j] == 0)
 			{
 				return 0;
 			}
@@ -92,16 +93,16 @@ namespace cam {
 			bool breakflag = true;
 			for (int j = 0; j < serverVec_.size(); j++)
 			{
-				if (image_receiving_flag[j] != -1)
+				if (server_receiving_flag[j] != -1)
 				{
 					breakflag = false;
 				}
 			}
 			if (breakflag == true)
 				break;
-			else if (i > wait_time_local)
+			else if (i > wait_time_local * times)
 			{
-				SysUtil::warningOutput("GenCameraNETVIR::wait_for_image_receive wait too long, check your network");
+				SysUtil::warningOutput("GenCameraNETVIR::wait_for_receive wait too long, check your network");
 				break;
 			}
 			else
@@ -112,7 +113,7 @@ namespace cam {
 		}
 		for (int j = 0; j < serverVec_.size(); j++)
 		{
-			image_receiving_flag[j] = 0;
+			server_receiving_flag[j] = 0;
 		}
 		return 0;
 	}
@@ -215,6 +216,9 @@ namespace cam {
 				case Communication_Camera_Open_Camera: {			//open camera
 					std::ostringstream strTmp("");
 					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
+					//data_receive[cameraControlMessage_.serverIndex_] = cameraControlMessage_.gendata_;
+					memcpy(&data_receive[cameraControlMessage_.serverIndex_], &cameraControlMessage_.gendata_, sizeof(GenCameraControlData));
+					server_receiving_flag[serverIndex] = -1;
 					switch (status) {
 					case Communication_Camera_Open_Camera_Ok: {
 
@@ -249,7 +253,7 @@ namespace cam {
 				case Communication_Camera_Get_Image: {			//get image
 					std::ostringstream strTmp("");
 					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
-					image_receiving_flag[serverIndex] = -1;
+					server_receiving_flag[serverIndex] = -1;
 					switch (status) {
 					case Communication_Camera_Get_Image_Ok: {
 						int32_t imagesize = _cameraControlMessage.imageSize_;
@@ -362,13 +366,58 @@ namespace cam {
 				i += 5;
 			}
 		}
+		this->data_receive.resize(serverVec_.size());
 		this->cameraNum = 0;
 		for (int i = 0; i < serverVec_.size(); i++)
 		{
 			this->cameraNum += serverVec_[i].boxVec_[0].cameraAmount_;
-			image_receiving_flag.push_back(0);
+			server_receiving_flag.push_back(0);
 		}
 		this->isInit = true;
+		for (int i = 0;;)
+		{
+			if (serverVec_[0].connectedFlag_ == true)//TODO: should check every server!
+			{
+				SysUtil::infoOutput("Connected!");
+				break;
+			}
+			else if (i > wait_time_local * 10)
+			{
+				SysUtil::warningOutput("GenCameraNETVIR::init connection wait too long, check your network");
+				std::ostringstream strTmp("");
+				strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
+				SysUtil::warningOutput(strTmp.str());
+				return -1;
+			}
+			else
+			{
+				i += 5;
+				SysUtil::sleep(5);
+			}
+
+		}
+		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+		{
+			cameraControlMessage_.requestorId_ = id_;
+			cameraControlMessage_.boxIndex_ = 0;
+			cameraControlMessage_.cameraIndex_ = 0;
+			cameraControlMessage_.operateAllFlag_ = false;
+			cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+			SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " init").toStdString());
+			cameraControlMessage_.serverIndex_ = serverIndex;
+			cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+			cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+			cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+			cameraControlMessage_.genfunc_ = "init";
+
+			server_receiving_flag[serverIndex] = 1;
+			emit StartOperation(cameraControlMessage_, serverVec_);
+		}
+		wait_for_receive();
+		for (int i = 0; i < serverVec_.size(); i++)
+			if (data_receive[i].void_func.return_val != 0)
+				return data_receive[i].void_func.return_val;
 		return 0;
 	}
 
@@ -385,30 +434,49 @@ namespace cam {
 		}
 		camInfos.resize(this->cameraNum);
 		this->camInfos.resize(this->cameraNum);
-		//TODO: move static version to dynamic version
-		for (int i = 0; i < this->cameraNum; i++)
+
+		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 		{
-			if(i == 0)
-				camInfos[i].sn = "17392138";
-			else if(i == 1)
-				camInfos[i].sn = "17391723";
-			else if(i == 2)
-				camInfos[i].sn = "17392140";
-			else if(i == 3)
-				camInfos[i].sn = "17391749";
-			else 
-				camInfos[i].sn = "00000000";
-			camInfos[i].width = 4096;
-			camInfos[i].height = 3000;
-			camInfos[i].fps = 10.0f;
-			camInfos[i].autoExposure = Status::on;
-			this->getBayerPattern(i, camInfos[i].bayerPattern);
-			camInfos[i].redGain = 1.0f;
-			camInfos[i].greenGain = 1.0f;
-			camInfos[i].blueGain = 1.0f;
-			camInfos[i].isWBRaw = true;
-			this->camInfos[i] = camInfos[i];
+			cameraControlMessage_.requestorId_ = id_;
+			cameraControlMessage_.boxIndex_ = 0;
+			cameraControlMessage_.cameraIndex_ = 0;
+			cameraControlMessage_.operateAllFlag_ = false;
+			cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+			SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getCamInfos").toStdString());
+			cameraControlMessage_.serverIndex_ = serverIndex;
+			cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+			cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+			cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+			cameraControlMessage_.genfunc_ = "getCamInfos";
+
+
+			//emit StartOperation(cameraControlMessage_, serverVec_);
+			server_receiving_flag[serverIndex] = 1;
+			emit StartOperation(cameraControlMessage_, serverVec_);
 		}
+		wait_for_receive();
+		int camIndex = 0;
+		for (int i = 0; i < serverVec_.size(); i++)
+			for (int j = 0; j < serverVec_[i].boxVec_[0].cameraAmount_; j++)
+			{
+				std::string tmp_str(data_receive[i].caminfo_func.camInfos[j].sn);
+				camInfos[camIndex].sn = tmp_str;
+				camInfos[camIndex].width = data_receive[i].caminfo_func.camInfos[j].width;
+				camInfos[camIndex].height = data_receive[i].caminfo_func.camInfos[j].height;
+				camInfos[camIndex].fps = data_receive[i].caminfo_func.camInfos[j].fps;
+				camInfos[camIndex].autoExposure = (Status)data_receive[i].caminfo_func.camInfos[j].autoExposure;
+				camInfos[camIndex].bayerPattern = (GenCamBayerPattern)data_receive[i].caminfo_func.camInfos[j].bayerPattern;
+				camInfos[camIndex].redGain = data_receive[i].caminfo_func.camInfos[j].redGain;
+				camInfos[camIndex].greenGain = data_receive[i].caminfo_func.camInfos[j].greenGain;
+				camInfos[camIndex].blueGain = data_receive[i].caminfo_func.camInfos[j].blueGain;
+				camInfos[camIndex].isWBRaw = data_receive[i].caminfo_func.camInfos[j].isWBRaw;
+				this->camInfos[camIndex] = camInfos[camIndex];
+				camIndex++;
+			}
+		for (int i = 0; i < serverVec_.size(); i++)
+			if (data_receive[i].void_func.return_val != 0)
+				return data_receive[i].void_func.return_val;
 		return 0;
 	}
 
@@ -422,35 +490,13 @@ namespace cam {
 			SysUtil::warningOutput("GenCameraNETVIR::startCapture init first please");
 			return -1;
 		}
-		if (serverVec_.size() == NULL ) {
+		if (serverVec_.size() == 0 ) {
 			std::ostringstream strTmp("");
 			strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
 			SysUtil::warningOutput(strTmp.str());
 		}
 		else
 		{
-			for (int i = 0;;)
-			{
-				if (serverVec_[0].connectedFlag_ == true)//TODO: should check every server!
-				{
-					SysUtil::infoOutput("Connected!");
-					break;
-				}
-				else if (i > wait_time_local * 10)
-				{
-					SysUtil::warningOutput("GenCameraNETVIR::startCapture connection wait too long, check your network");
-					std::ostringstream strTmp("");
-					strTmp << "CameraServer_" << 0 << " is not connected!\nPlease check connection!";
-					SysUtil::warningOutput(strTmp.str());
-					return -1;
-				}
-				else
-				{
-					i += 5;
-					SysUtil::sleep(5);
-				}
-
-			}
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
 				cameraControlMessage_.requestorId_ = id_;
@@ -458,36 +504,28 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Opening server" + QString::number(serverIndex, 10) + "'s camera...").toStdString());
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " startCapture").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
-				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;//Open Camera
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1�����޸����в���
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "startCapture";
+				
+
+				//emit StartOperation(cameraControlMessage_, serverVec_);
+				server_receiving_flag[serverIndex] = 1;
 				emit StartOperation(cameraControlMessage_, serverVec_);
 			}
-			//isCapture moved to OperationFinished
-			//this->isCapture = true;
-			for (int i = 0;;)
-			{
-				if (this->isCapture == true)
-					break;
-				else if (i > wait_time_local * 10)
-				{
-					SysUtil::warningOutput("GenCameraNETVIR::startCapture wait too long, check your network");
-					return -1;
-				}
-				else
-				{
-					i += 5;
-					SysUtil::sleep(5);
-				}
-
-			}
-
-			//TODO: removed from here
-			this->getCamInfos(camInfos);
+			wait_for_receive(5);
+			//return 
+			//this->getCamInfos(camInfos);
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
 		}
-		return 0;
+		return -1;
 	}
 
 	/**
@@ -555,9 +593,42 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setFPS(int camInd, float fps, float exposureUpperLimitRatio) {
-		SysUtil::warningOutput("GenCameraNETVIR::setFPS Function unused");
+		//SysUtil::warningOutput("GenCameraNETVIR::setFPS Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setFPS init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setFPS").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setFPS";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_float[0] = fps;
+				cameraControlMessage_.gendata_.param_func.param_float[1] = exposureUpperLimitRatio;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -566,9 +637,40 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoWhiteBalance(int camInd) {
-		SysUtil::warningOutput("GenCameraNETVIR::setAutoWhiteBalance Function unused");
+		//SysUtil::warningOutput("GenCameraNETVIR::setAutoWhiteBalance Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setFPS init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoWhiteBalance").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setAutoWhiteBalance";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -581,9 +683,42 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::setWhiteBalance(int camInd, float redGain,
 		float greenGain, float blueGain) {
-		SysUtil::warningOutput("GenCameraNETVIR::setWhiteBalance Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setWhiteBalance init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setWhiteBalance").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setWhiteBalance";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_float[0] = redGain;
+				cameraControlMessage_.gendata_.param_func.param_float[1] = greenGain;
+				cameraControlMessage_.gendata_.param_func.param_float[2] = blueGain;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -593,9 +728,40 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoExposure(int camInd, Status autoExposure) {
-		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposure Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setAutoExposure init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposure").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setAutoExposure";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)autoExposure;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -607,9 +773,40 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setAutoExposureLevel(int camInd, float level) {
-		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureLevel Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureLevel init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureLevel").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setAutoExposureLevel";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_float[0] = level;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -623,9 +820,41 @@ namespace cam {
 	*/
 	int GenCameraNETVIR::setAutoExposureCompensation(int camInd,
 		Status status, float relativeEV) {
-		SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureCompensation Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureCompensation init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureCompensation").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setAutoExposureCompensation";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)status;
+				cameraControlMessage_.gendata_.param_func.param_float[0] = relativeEV;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -635,9 +864,40 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::setExposure(int camInd, int time) {
-		SysUtil::warningOutput("GenCameraNETVIR::setExposure Function unused");
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setExposure init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setExposure").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setExposure";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_int[1] = time;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		return -1;
-		return 0;
 	}
 
 	/**
@@ -647,10 +907,42 @@ namespace cam {
 	@return int
 	*/
 	int GenCameraNETVIR::getBayerPattern(int camInd, GenCamBayerPattern & bayerPattern) {
-		//TODO:To dynamic
-		SysUtil::warningOutput("GenCameraNETVIR::getBayerPattern TODO!");
-		bayerPattern = GenCamBayerPattern::BayerRGGB;
-		return 0;
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::getBayerPattern init first please");
+			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getBayerPattern").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "getBayerPattern";
+				cameraControlMessage_.gendata_.param_func.param_int[0] = camInd;
+				cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)bayerPattern;
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			//TODO:now only return the first pattern
+			bayerPattern = (GenCamBayerPattern)data_receive[0].param_func.param_enum[0];
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
+		return -1;
 	}
 
 	/*************************************************************/
@@ -666,6 +958,11 @@ namespace cam {
 	int GenCameraNETVIR::setCaptureMode(GenCamCaptureMode captureMode,
 		int bufferSize)
 	{
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::getBayerPattern init first please");
+			return -1;
+		}
 		this->getCamInfos(camInfos);
 		// init capture buffer
 		this->captureMode = captureMode;
@@ -694,6 +991,32 @@ namespace cam {
 						this->bufferImgs[j][i].type = this->bufferType;
 					}
 				}
+			
+				for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+				{
+					cameraControlMessage_.requestorId_ = id_;
+					cameraControlMessage_.boxIndex_ = 0;
+					cameraControlMessage_.cameraIndex_ = 0;
+					cameraControlMessage_.operateAllFlag_ = false;
+					cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+					SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setCaptureMode").toStdString());
+					cameraControlMessage_.serverIndex_ = serverIndex;
+					cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+					cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+					cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+					cameraControlMessage_.genfunc_ = "setCaptureMode";
+					cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)captureMode;
+					cameraControlMessage_.gendata_.param_func.param_int[0] = bufferSize;
+
+					server_receiving_flag[serverIndex] = 1;
+					emit StartOperation(cameraControlMessage_, serverVec_);
+				}
+				wait_for_receive();
+				for (int i = 0; i < serverVec_.size(); i++)
+					if (data_receive[i].void_func.return_val != 0)
+						return data_receive[i].void_func.return_val;
+				return 0;
 			}
 		}
 		else if (captureMode == cam::GenCamCaptureMode::Single ||
@@ -739,6 +1062,31 @@ namespace cam {
 		{
 			SysUtil::errorOutput("GenCameraNETVIR::startCaptureThreads without init!");
 			return -1;
+		}
+		else
+		{
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureCompensation").toStdString());
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "startCaptureThreads";
+
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
 		}
 		if (captureMode == cam::GenCamCaptureMode::Continous ||
 			captureMode == cam::GenCamCaptureMode::ContinousTrigger) {

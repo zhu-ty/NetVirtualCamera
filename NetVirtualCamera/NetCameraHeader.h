@@ -14,8 +14,58 @@
 #include <QMutex>
 
 //#define CAMERA_COMMAND_DATA_MAX_SIZE  (8192+2048)					///通信命令数据包最大长度
-#define CAMERA_COMMAND_DATA_MAX_SIZE  2048			///通信命令数据包最大长度
+#define CAMERA_COMMAND_DATA_MAX_SIZE  4096*10			///通信命令数据包最大长度
 #define CAMERA_IMAGE_DATA_MAX_SIZE    (4096*4096*4+2048)		///图像数据最大长度
+
+#define MAX_CAMERA_NUM 16
+#define MAX_PARAM_NUM 10
+#define MAX_PATH_LEN 512
+#define MAX_SN_LEN MAX_PATH_LEN
+
+struct GenCamInfoStruct
+{
+	char sn[MAX_SN_LEN];
+	int width;
+	int height;
+	float fps;
+	int autoExposure;
+	int bayerPattern;
+	float redGain;
+	float greenGain;
+	float blueGain;
+	bool isWBRaw;
+};
+
+
+union GenCameraControlData
+{
+	struct
+	{
+		int return_val;
+	} void_func;
+	struct
+	{
+		int return_val;
+		GenCamInfoStruct camInfos[MAX_CAMERA_NUM];
+	} caminfo_func;
+	struct
+	{
+		int return_val;
+		bool param_bool[MAX_PARAM_NUM];
+		int param_enum[MAX_PARAM_NUM];
+		int param_int[MAX_PARAM_NUM];
+		float param_float[MAX_PARAM_NUM];
+	} param_func;
+	struct
+	{
+		int return_val;
+		char str[MAX_PATH_LEN];
+	} str_func;
+
+};
+
+
+
 
 typedef struct
 {
@@ -137,6 +187,10 @@ public:
 	//QImage *qimage_ = NULL;									//获取单张图片的存放起始地址
 	int32_t imageSize_ = 0;
 
+
+	std::string genfunc_ = "";
+	GenCameraControlData gendata_;
+
 	inline void operator=(const CameraControlMessage &_value)
 	{
 		requestorId_ = _value.requestorId_;
@@ -159,6 +213,8 @@ public:
 		images_jpeg_len = _value.images_jpeg_len;
 		/*qimage_ = _value.qimage_;*/
 		imageSize_ = _value.imageSize_;
+		genfunc_ = _value.genfunc_;
+		gendata_ = _value.gendata_;
 	}
 
 };
@@ -225,10 +281,14 @@ public:
 	char saveName_[128] = "";										///8:保存的文件名： test				固定长度为128
 	//char othersInfo_[8192] = "";                                    ///Tiff保存的操作者、日期、实验目的信息  固定长度为8192
 	//char othersInfo_[1024] = "";                                    ///Tiff保存的操作者、日期、实验目的信息  固定长度为1024
+
+	char genfunc_c[256];                                            ///待调用函数
+	GenCameraControlData gendata_c;                                 ///数据
 	void PrintInfo(std::string _str)
 	{
 		std::cout << _str << endl;
 		std::cout << "Command: " << "Communication_Camera_Open_Camera" << endl;
+#ifndef OPEN_CAMERA_LESS_OUTPUT
 		std::cout << "         " << "operationIndex: " << operationIndex_ << endl;
 		std::cout << "         " << "boxAmount: " << boxAmount_ << endl;
 		std::cout << "         " << "boxIndex: " << boxIndex_ << endl;
@@ -247,6 +307,8 @@ public:
 		std::cout << "         " << "triggerMode: " << triggerMode_ << endl;
 		std::cout << "         " << "savePath: " << savePath_ << endl;
 		std::cout << "         " << "saveName: " << saveName_ << endl;
+#endif
+		std::cout << "         " << "function: " << genfunc_c << endl;
 	}
 };
 
