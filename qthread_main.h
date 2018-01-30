@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <queue>
-#include <thread>
+//#include <thread>
 #include <memory>
 
 #include <QWidget>
@@ -41,12 +41,6 @@ class MyThread : public QThread
 	Q_OBJECT
 public:
 	MyThread(QObject* parent = nullptr) {}
-	//自定义发送的信号
-//signals:
-//	void myThreadSignal(const int);
-//	//自定义槽
-//public slots:
-//	void myThreadSlot(const int);
 protected:
 	void run() override;
 };

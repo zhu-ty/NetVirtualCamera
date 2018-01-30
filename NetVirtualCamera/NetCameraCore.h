@@ -19,6 +19,10 @@
 //#include "omp.h"
 #include "NetCameraHeader.h"
 
+//#using "../NetVirtualCamera/CSharpSocket.dll"
+
+#include "CSharpSocketCppExport.h"
+
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"
 
@@ -49,7 +53,9 @@ private:
 	CameraClientReceivePackageTypeDef receivePackage_;						//接收消息包
 	std::vector<CameraServerUnitTypeDef> serverVec_;						//存储全局相机控制参数
 	CameraControlMessage cameraControlMessage_;								//相机控制消息包
-	QTcpSocket *tcpSocket_;													//socket通信子
+	//QTcpSocket *tcpSocket_;													//socket通信子
+	/*CSharpSocket::SKTcpSocket ^tcpSocket_;*/
+	SKSocket *tcpSocket_;
 	static const quint32 socketReadWaitForMs_ = 6000;						//阻塞的最长时间
 	void ResetSocket(void);
 	Communication_Camera_Status SendData(void);				

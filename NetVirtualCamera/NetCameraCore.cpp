@@ -28,9 +28,10 @@ CameraCommunicationThread::CameraCommunicationThread(int _id,std::vector<CameraS
 	updateTimer->setInterval(updateTimerInterval);
 	updateTimer->start();
 
-	tcpSocket_ = new QTcpSocket();
-	QObject::connect(tcpSocket_, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(SocketStateChanged()));
-	
+	//tcpSocket_ = new QTcpSocket();
+	//tcpSocket_->setParent(this);
+	//QObject::connect(tcpSocket_, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(SocketStateChanged()));
+	tcpSocket_ = new SKSocket();
 	receivePackage_.data_ = new char[CAMERA_IMAGE_DATA_MAX_SIZE];
 }
 
@@ -72,28 +73,44 @@ void CameraCommunicationThread::UpdateStatus(void)
 
 void CameraCommunicationThread::SocketStateChanged(void)
 {
-	if (tcpSocket_!= NULL) {
-		if (tcpSocket_->state() == QAbstractSocket::ConnectedState) {
-			tcpSocket_->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-			tcpSocket_->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-			if (id_ < serverVec_.size()) {
-				serverVec_[id_].connectedFlag_ = true;
-			}
-		}
-		else if (tcpSocket_->state() == QAbstractSocket::UnconnectedState) {
-			if (id_ < serverVec_.size()) {
-				serverVec_[id_].connectedFlag_ = false;
-			}
-		}
-	}
+	//if (tcpSocket_!= NULL) {
+	//	if (tcpSocket_->state() == QAbstractSocket::ConnectedState) {
+	//		tcpSocket_->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+	//		tcpSocket_->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+	//		if (id_ < serverVec_.size()) {
+	//			serverVec_[id_].connectedFlag_ = true;
+	//		}
+	//	}
+	//	else if (tcpSocket_->state() == QAbstractSocket::UnconnectedState) {
+	//		if (id_ < serverVec_.size()) {
+	//			serverVec_[id_].connectedFlag_ = false;
+	//		}
+	//	}
+	//}
 }
 
 
 void CameraCommunicationThread::ResetSocket(void)
 {
 	if (id_ < serverVec_.size()) {
-		tcpSocket_->abort();
-		tcpSocket_->connectToHost(QString::fromStdString(serverVec_[id_].ip_), std::stoi(serverVec_[id_].port_), QIODevice::ReadWrite, QAbstractSocket::IPv4Protocol);
+		try
+		{
+			tcpSocket_->abort();
+		}
+		catch(exception e)
+		{
+
+		}
+		//tcpSocket_->abort();
+		char tmp[100];
+		memcpy(tmp, serverVec_[id_].ip_.c_str(), serverVec_[id_].ip_.size());
+		serverVec_[id_].connectedFlag_ = tcpSocket_->connectToHost(
+			(unsigned char*)tmp,
+			serverVec_[id_].ip_.size(),
+			//54321,
+			std::stoi(serverVec_[id_].port_),
+			1000);;
+		//tcpSocket_->connectToHost(QString::fromStdString(serverVec_[id_].ip_), std::stoi(serverVec_[id_].port_), QIODevice::ReadWrite, QAbstractSocket::IPv4Protocol);
 	}
 }
 
@@ -101,30 +118,40 @@ void CameraCommunicationThread::ResetSocket(void)
 Communication_Camera_Status CameraCommunicationThread::SendData(void)
 {
 	if (id_ < serverVec_.size()) {
-		if (tcpSocket_ != NULL&&tcpSocket_->state() == QAbstractSocket::ConnectedState) {
-			tcpSocket_->write((char *)&sendPackage_.command_, sizeof(sendPackage_));
-			if (tcpSocket_->flush()) {
-				if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
-					///先解析返回的状态
+		//if (tcpSocket_ != NULL&&tcpSocket_->state() == QAbstractSocket::ConnectedState) {
+		if (tcpSocket_ != nullptr && tcpSocket_->state() == true)
+		{
+			//tcpSocket_->write((char *)&sendPackage_.command_, sizeof(sendPackage_));
+			if (tcpSocket_->write((unsigned char *)&sendPackage_.command_, sizeof(sendPackage_))) {
+				if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_))
+					//if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
+						///先解析返回的状态
 					if (sendPackage_.command_ == Communication_Camera_Get_Status) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
-					else if(sendPackage_.command_ == Communication_Camera_Open_Box) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+					else if (sendPackage_.command_ == Communication_Camera_Open_Box) {
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Open_Camera) {
-						int readbyteSize = tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
+						//int readbyteSize = tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
+						int readbyteSize = tcpSocket_->read(
+							(unsigned char*)&receivePackage_.status_,
+							sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
 						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						//	读取返回值
 						if (receivePackage_.status_ == Communication_Camera_Open_Camera_Ok) {
 							int dataAmount = receivePackage_.dataSize_;
-							if (dataAmount > 0 && dataAmount< CAMERA_IMAGE_DATA_MAX_SIZE) {
+							if (dataAmount > 0 && dataAmount < CAMERA_IMAGE_DATA_MAX_SIZE) {
 								int readedSize = 0;
-								while (readedSize<dataAmount) {
+								while (readedSize < dataAmount) {
 									if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
-										readedSize += tcpSocket_->read(receivePackage_.data_ + readedSize, dataAmount - readedSize);
+										//readedSize += tcpSocket_->read(receivePackage_.data_ + readedSize, dataAmount - readedSize);
+										readedSize += tcpSocket_->read(
+											(unsigned char*)(receivePackage_.data_ + readedSize), dataAmount - readedSize);
 									}
 									else {
 										receivePackage_.status_ = Communication_Camera_Action_Overtime;
@@ -136,23 +163,28 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Trigger_Continous) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Trigger_Single) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Get_Image) {
-						int readbyteSize=tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_)+sizeof(receivePackage_.dataSize_));
+						//int readbyteSize = tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
+						int readbyteSize = tcpSocket_->read(
+							(unsigned char*)&receivePackage_.status_,
+							sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
 						//	读取图片
 						if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
 							int dataAmount = receivePackage_.dataSize_;
-							if (dataAmount > 0&&dataAmount< CAMERA_IMAGE_DATA_MAX_SIZE) {
+							if (dataAmount > 0 && dataAmount < CAMERA_IMAGE_DATA_MAX_SIZE) {
 								int readedSize = 0;
-								while (readedSize<dataAmount) {
+								while (readedSize < dataAmount) {
 									if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
-										readedSize += tcpSocket_->read(receivePackage_.data_ + readedSize, dataAmount - readedSize);
+										//readedSize += tcpSocket_->read(receivePackage_.data_ + readedSize, dataAmount - readedSize);
+										readedSize += tcpSocket_->read(
+											(unsigned char*)(receivePackage_.data_ + readedSize), dataAmount - readedSize);
 									}
 									else {
 										receivePackage_.status_ = Communication_Camera_Action_Overtime;
@@ -164,20 +196,19 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Close_Box) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Close_Camera) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
 					else if (sendPackage_.command_ == Communication_Camera_Reset_Id) {
-						tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
+						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
-				}
-				return Communication_Camera_Action_Overtime;
 			}
+			return Communication_Camera_Action_Overtime;
 		}
 	}
 	return Communication_Camera_Action_Invalid;

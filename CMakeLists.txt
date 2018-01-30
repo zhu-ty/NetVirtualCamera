@@ -31,6 +31,9 @@ set(CUDA_NVCC_FLAGS
 	-gencode=arch=compute_61,code=\"sm_61,compute_61\"
     )
 
+
+
+
 #Qt5
 if ( WIN32 )
 	set(Qt5_DIR "E:/libs/Qt/5.6/msvc2015_64/lib/cmake/Qt5")
@@ -44,6 +47,16 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt5 REQUIRED Widgets Network)
 add_definitions(${Qt5_DEFINITIONS})
 set(CMAKE_CXX_FLAGS "${Qt5_EXECUTABLE_COMPILE_FLAGS}")
+
+# #Csharp Socket
+# set(CMAKE_CXX_FLAGS "/clr /FU\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.0\\mscorlib.dll\"")
+# if(CMAKE_CXX_FLAGS_DEBUG MATCHES "/RTC1")
+# string(REPLACE "/RTC1" " " CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+# endif()
+# if(CMAKE_CXX_FLAGS MATCHES "/EHsc")
+# string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# endif()
+set(CSHARP_SOCKET_LIBRARY "E:/Projects/NetVirtualCamera/NetVirtualCamera/CSharpSocketCppExport.lib")
 
 
 # # pointgrey camera sdk
@@ -155,11 +168,14 @@ target_link_libraries(${name}
 	${CUDA_nppist_LIBRARY}
 	${CUDA_nppisu_LIBRARY}
 	${CUDA_nppitc_LIBRARY}
-	${CUDA_npps_LIBRARY} 
+    ${CUDA_npps_LIBRARY} 
+    ${CSHARP_SOCKET_LIBRARY}
     # debug ${PTGREY_SDK_LIBRARY_DEBUG} ${XIMEA_SDK_LIBRARY_DEBUG}
     # optimized ${PTGREY_SDK_LIBRARY_RELEASE} ${XIMEA_SDK_LIBRARY_RELEASE}
     Qt5::Widgets
-	Qt5::Network
+    Qt5::Network
+    
+
 )
 
 add_custom_command(

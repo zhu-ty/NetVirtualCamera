@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <queue>
-#include <thread>
+#include <thread> 
 #include <memory>
 			
 			
@@ -511,6 +511,6 @@ namespace cam {
 	std::shared_ptr<GenCamera> createCamera(CameraModel camModel);
 };
 
-
+//#pragma managed(pop)
 
 #endif
