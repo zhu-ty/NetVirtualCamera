@@ -87,6 +87,8 @@ set(MY_HEADER_FILES
     NetVirtualCamera/NetCameraCore.h
     NetVirtualCamera/NetCameraHeader.h
     NetVirtualCamera/NetVirtualCamera.h
+    NetVirtualCamera/CSharpSocketCppExport.h
+    NetVirtualCamera/Socket.h
 
     qthread_main.h
 )
@@ -100,6 +102,9 @@ set(MY_SOURCE_FILES
     NetVirtualCamera/Netbase.cpp
     NetVirtualCamera/NetCameraCore.cpp
     NetVirtualCamera/NetVirtualCamera.cpp
+
+    NetVirtualCamera/Socket.cpp
+
     # C++ source file
     NPPJpegCoder.cpp
     # generic camera driver
@@ -127,9 +132,12 @@ source_group("NetVirtual" FILES
     NetVirtualCamera/NetCameraCore.h
     NetVirtualCamera/NetCameraHeader.h
     NetVirtualCamera/NetVirtualCamera.h
+    NetVirtualCamera/CSharpSocketCppExport.h
+    NetVirtualCamera/Socket.h
     NetVirtualCamera/Netbase.cpp
     NetVirtualCamera/NetCameraCore.cpp
     NetVirtualCamera/NetVirtualCamera.cpp
+    NetVirtualCamera/Socket.cpp
 )
 
 source_group("cuda" FILES
@@ -183,3 +191,16 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy
                 ${PROJECT_SOURCE_DIR}/NetVirtualCamera/config.xml
                 ${CMAKE_CURRENT_BINARY_DIR}/config.xml)
+
+add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${PROJECT_SOURCE_DIR}/NetVirtualCamera/CSharpSocket.dll
+                ${PROJECT_BINARY_DIR}/Debug/CSharpSocket.dll)
+
+add_custom_command(
+        TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${PROJECT_SOURCE_DIR}/NetVirtualCamera/CSharpSocket.dll
+                ${PROJECT_BINARY_DIR}/Release/CSharpSocket.dll)
+                

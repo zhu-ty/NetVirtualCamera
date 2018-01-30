@@ -31,7 +31,11 @@ CameraCommunicationThread::CameraCommunicationThread(int _id,std::vector<CameraS
 	//tcpSocket_ = new QTcpSocket();
 	//tcpSocket_->setParent(this);
 	//QObject::connect(tcpSocket_, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(SocketStateChanged()));
+#ifdef CSharp
 	tcpSocket_ = new SKSocket();
+#else
+	tcpSocket_ = new Socket();
+#endif
 	receivePackage_.data_ = new char[CAMERA_IMAGE_DATA_MAX_SIZE];
 }
 
@@ -97,7 +101,7 @@ void CameraCommunicationThread::ResetSocket(void)
 		{
 			tcpSocket_->abort();
 		}
-		catch(exception e)
+		catch(char *str)
 		{
 
 		}

@@ -34,3 +34,6 @@
 data/
 build/
 .vscode/
+
+!NetVirtualCamera/*.lib
+!NetVirtualCamera/*.dll

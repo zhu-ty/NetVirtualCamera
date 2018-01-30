@@ -1,5 +1,13 @@
 
 #pragma once
+#define CSharp
+
+#ifdef CSharp
+#include "CSharpSocketCppExport.h"
+#else
+#include "Socket.h"
+#endif
+
 #include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
 //#include "NPPJpegCoder.h"
@@ -21,7 +29,9 @@
 
 //#using "../NetVirtualCamera/CSharpSocket.dll"
 
-#include "CSharpSocketCppExport.h"
+
+
+
 
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"
@@ -55,7 +65,11 @@ private:
 	CameraControlMessage cameraControlMessage_;								//相机控制消息包
 	//QTcpSocket *tcpSocket_;													//socket通信子
 	/*CSharpSocket::SKTcpSocket ^tcpSocket_;*/
+#ifdef CSharp
 	SKSocket *tcpSocket_;
+#else
+	Socket *tcpSocket_;
+#endif
 	static const quint32 socketReadWaitForMs_ = 6000;						//阻塞的最长时间
 	void ResetSocket(void);
 	Communication_Camera_Status SendData(void);				

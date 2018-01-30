@@ -12,6 +12,8 @@ using namespace std;
 
 // This class is exported from the CSharpSocketCppExport.dll
 class SK_API SKSocket {
+private:
+	int usage_i = 0;
 public:
 	SKSocket(void);
 	bool state();
