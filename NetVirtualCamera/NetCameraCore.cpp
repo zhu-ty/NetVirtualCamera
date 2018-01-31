@@ -101,7 +101,7 @@ void CameraCommunicationThread::ResetSocket(void)
 		{
 			tcpSocket_->abort();
 		}
-		catch(char *str)
+		catch(...)
 		{
 
 		}
@@ -111,7 +111,6 @@ void CameraCommunicationThread::ResetSocket(void)
 		serverVec_[id_].connectedFlag_ = tcpSocket_->connectToHost(
 			(unsigned char*)tmp,
 			serverVec_[id_].ip_.size(),
-			//54321,
 			std::stoi(serverVec_[id_].port_),
 			1000);;
 		//tcpSocket_->connectToHost(QString::fromStdString(serverVec_[id_].ip_), std::stoi(serverVec_[id_].port_), QIODevice::ReadWrite, QAbstractSocket::IPv4Protocol);

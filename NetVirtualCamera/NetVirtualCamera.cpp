@@ -221,19 +221,22 @@ namespace cam {
 					server_receiving_flag[serverIndex] = -1;
 					switch (status) {
 					case Communication_Camera_Open_Camera_Ok: {
-
-						SysUtil::infoOutput(("[Server" + QString::number(serverIndex, 10) + "]Open cameras OK.").toStdString());
+						std::string atmp = ("[Server" + QString::number(serverIndex, 10) + "] reply (OpenCameraCommand) ").toStdString();
+						atmp = atmp + cameraControlMessage_.genfunc_ + " OK.";
+						SysUtil::infoOutput(atmp);
 						this->isCapture = true;
 						break;
 					}
 					case Communication_Camera_Open_Camera_Invalid: {
-						strTmp << "Failed to open Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";
+						strTmp << "Failed to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
+							<< "! With function"<< cameraControlMessage_.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
 						this->isCapture = false;
 						break;
 					}
 					case Communication_Camera_Action_Overtime: {
-						strTmp << "Overtime to open Server_" << serverIndex << "-Box_" << boxIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId << "!";      
+						strTmp << "Overtime to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
+							<< "! With function" << cameraControlMessage_.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
 						this->isCapture = false;
 						break;
@@ -331,8 +334,36 @@ namespace cam {
 				"starting capturing !");
 			return -1;
 		}
-		SysUtil::errorOutput("GenCameraNETVIR::makeSetEffective Function unused");
-		return -1;
+		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+		{
+			cameraControlMessage_.requestorId_ = id_;
+			cameraControlMessage_.boxIndex_ = 0;
+			cameraControlMessage_.cameraIndex_ = 0;
+			cameraControlMessage_.operateAllFlag_ = false;
+			cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+
+			//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) makeSetEffective").toStdString();
+			std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) makeSetEffective" +
+				" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+			SysUtil::infoOutput(atmp);
+
+			//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoWhiteBalance").toStdString());
+			cameraControlMessage_.serverIndex_ = serverIndex;
+			cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+			cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+			cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+			cameraControlMessage_.genfunc_ = "makeSetEffective";
+			cameraControlMessage_.gendata_.param_func.param_int[0] = k;
+
+			server_receiving_flag[serverIndex] = 1;
+			emit StartOperation(cameraControlMessage_, serverVec_);
+		}
+		wait_for_receive();
+		for (int i = 0; i < serverVec_.size(); i++)
+			if (data_receive[i].void_func.return_val != 0)
+				return data_receive[i].void_func.return_val;
+		return 0;
 	}
 
 	/**
@@ -403,7 +434,12 @@ namespace cam {
 			cameraControlMessage_.cameraIndex_ = 0;
 			cameraControlMessage_.operateAllFlag_ = false;
 			cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-			SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " init").toStdString());
+
+			//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) init").toStdString();
+			std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) init" +
+				" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+			SysUtil::infoOutput(atmp);
+
 			cameraControlMessage_.serverIndex_ = serverIndex;
 			cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 			cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -442,7 +478,13 @@ namespace cam {
 			cameraControlMessage_.cameraIndex_ = 0;
 			cameraControlMessage_.operateAllFlag_ = false;
 			cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-			SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getCamInfos").toStdString());
+
+			//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) getCamInfos").toStdString();
+			std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) getCamInfos" +
+				" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+			SysUtil::infoOutput(atmp);
+
+			//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getCamInfos").toStdString());
 			cameraControlMessage_.serverIndex_ = serverIndex;
 			cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 			cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -504,7 +546,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " startCapture").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) startCapture").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) startCapture" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " startCapture").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -547,7 +595,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Closing server" + QString::number(serverIndex, 10) + "'s camera...").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(CloseCameraCommand) close camera").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(CloseCameraCommand) close camera" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Closing server" + QString::number(serverIndex, 10) + "'s camera...").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
 				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
@@ -608,7 +662,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setFPS").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setFPS").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setFPS" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setFPS").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -652,7 +712,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoWhiteBalance").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setAutoWhiteBalance").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setAutoWhiteBalance" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoWhiteBalance").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -697,7 +763,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setWhiteBalance").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setWhiteBalance").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setWhiteBalance" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setWhiteBalance").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -742,7 +814,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposure").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setAutoExposure").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setAutoExposure" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposure").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -787,7 +865,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureLevel").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setAutoExposureLevel").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setAutoExposureLevel" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureLevel").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -834,7 +918,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureCompensation").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setAutoExposureCompensation").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setAutoExposureCompensation" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureCompensation").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -878,7 +968,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setExposure").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) setExposure").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setExposure" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setExposure").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -921,7 +1017,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getBayerPattern").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) getBayerPattern").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) getBayerPattern" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " getBayerPattern").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -999,7 +1101,12 @@ namespace cam {
 					cameraControlMessage_.cameraIndex_ = 0;
 					cameraControlMessage_.operateAllFlag_ = false;
 					cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-					SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setCaptureMode").toStdString());
+
+					std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setCaptureMode" +
+						" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+					SysUtil::infoOutput(atmp);
+
+					//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setCaptureMode").toStdString());
 					cameraControlMessage_.serverIndex_ = serverIndex;
 					cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 					cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
@@ -1072,7 +1179,13 @@ namespace cam {
 				cameraControlMessage_.cameraIndex_ = 0;
 				cameraControlMessage_.operateAllFlag_ = false;
 				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setAutoExposureCompensation").toStdString());
+
+				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(OpenCameraCommand) startCaptureThreads").toStdString();
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) startCaptureThreads" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " startCaptureThreads").toStdString());
 				cameraControlMessage_.serverIndex_ = serverIndex;
 				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
 				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
