@@ -77,10 +77,10 @@ bool Socket::connectToHost(unsigned char *ip, int ip_len, int port,
 		fprintf(stderr, "Error setting socket opts send buffer: %s\n", strerror(errno));
 	}
 	int nNetTimeout = 3000;
-	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDTIMEO, (char *)nNetTimeout, sizeof(int)) == -1) {
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDTIMEO, (const char *)nNetTimeout, sizeof(int)) == -1) {
 		//fprintf(stderr, "Error setting socket opts send over time: %s\n", strerror(errno));
 	}
-	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)nNetTimeout, sizeof(int)) == -1) {
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (const char *)nNetTimeout, sizeof(int)) == -1) {
 		//fprintf(stderr, "Error setting socket opts receive over time: %s\n", strerror(errno));
 	}
 

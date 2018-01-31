@@ -287,7 +287,10 @@ namespace cam {
 					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
 					switch (status) {
 					case Communication_Camera_Close_Camera_Ok: {
-						SysUtil::infoOutput(("[Server" + QString::number(serverIndex, 10) + "]Colse Camera").toStdString());
+						//SysUtil::infoOutput(("[Server" + QString::number(serverIndex, 10) + "]Colse Camera").toStdString());
+						std::string atmp = ("[Server" + QString::number(serverIndex, 10) + "] reply (ColseCameraCommand) ").toStdString();
+						atmp = atmp + "close camera" + " OK.";
+						SysUtil::infoOutput(atmp);
 						this->isCapture = false;
 						break;
 					}
