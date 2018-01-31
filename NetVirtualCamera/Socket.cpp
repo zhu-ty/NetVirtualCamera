@@ -15,7 +15,6 @@ struct Socketdata {
 
 Socket::Socket() {
 	socketdata = new Socketdata;
-	
 	status = false;
 }
 
@@ -27,7 +26,10 @@ bool Socket::connectToHost(unsigned char *ip, int ip_len, int port,
 	int exceed_time) {
 	int iResult;
 	// Initialize Winsock
-
+	if (status == true) {
+		printf("Please abort before connect again.\n");
+		return false;
+	}
 	iResult = WSAStartup(MAKEWORD(2, 2), &(((Socketdata*)socketdata)->wsaData));
 	if (iResult != 0) {
 		printf("WSAStartup failed: %d\n", iResult);
@@ -67,20 +69,20 @@ bool Socket::connectToHost(unsigned char *ip, int ip_len, int port,
 		closesocket(((Socketdata*)socketdata)->ConnectSocket);
 		((Socketdata*)socketdata)->ConnectSocket = INVALID_SOCKET;
 	}
-	int a = 4096*4096*8;
-
-	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&a, sizeof(int)) == -1) {
-		fprintf(stderr, "Error setting socket opts: %s\n", strerror(errno));
+	int bufsize = 4096*4096*8;
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&bufsize, sizeof(int)) == -1) {
+		fprintf(stderr, "Error setting socket opts receive buffer: %s\n", strerror(errno));
 	}
-	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&a, sizeof(int)) == -1) {
-		fprintf(stderr, "Error setting socket opts: %s\n", strerror(errno));
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&bufsize, sizeof(int)) == -1) {
+		fprintf(stderr, "Error setting socket opts send buffer: %s\n", strerror(errno));
 	}
-
-	int nNetTimeout = 3000;//3秒
-						   //发送时限
-	setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDTIMEO, (char *)nNetTimeout, sizeof(int));
-	//接收时限
-	setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)nNetTimeout, sizeof(int));
+	int nNetTimeout = 3000;
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_SNDTIMEO, (char *)nNetTimeout, sizeof(int)) == -1) {
+		//fprintf(stderr, "Error setting socket opts send over time: %s\n", strerror(errno));
+	}
+	if (setsockopt(((Socketdata*)socketdata)->ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)nNetTimeout, sizeof(int)) == -1) {
+		//fprintf(stderr, "Error setting socket opts receive over time: %s\n", strerror(errno));
+	}
 
 	// Should really try the next address returned by getaddrinfo
 	// if the connect call failed
@@ -106,8 +108,8 @@ bool Socket::write(unsigned char *data, int data_len) {
 	iResult = send(((Socketdata*)socketdata)->ConnectSocket, (const char*)data, data_len, 0);
 	if (iResult == SOCKET_ERROR) {
 		printf("send failed: %d\n", WSAGetLastError());
-		closesocket(((Socketdata*)socketdata)->ConnectSocket);
-		WSACleanup();
+		//closesocket(((Socketdata*)socketdata)->ConnectSocket);
+		//WSACleanup();
 		return false;
 	}
 	return true;
@@ -117,8 +119,7 @@ bool Socket::waitForReadyRead(int exceed_time) {
 	u_long argp = 0;
 	for (int i = 0; i < exceed_time; i += 5) {
 		ioctlsocket(((Socketdata*)socketdata)->ConnectSocket, FIONREAD, &argp);
-		if (argp > 0)
-		{
+		if (argp > 0) {
 			std::cout << argp << std::endl;
 			return true;
 		}
@@ -134,10 +135,18 @@ int Socket::read(unsigned char* data, int len) {
 	// Receive data until the server closes the connection
 	int iResult;
 	iResult = recv(((Socketdata*)socketdata)->ConnectSocket, (char*)data, len, 0);
+	if (iResult == SOCKET_ERROR) {
+		printf("Receive failed: %d\n", WSAGetLastError());
+		//closesocket(((Socketdata*)socketdata)->ConnectSocket);
+		//WSACleanup();
+		return false;
+	}
 	return len;
 }
 
 bool Socket::abort() {
+	if (status == false)
+		return true;
 	int iResult;
 	iResult = shutdown(((Socketdata*)socketdata)->ConnectSocket, SD_BOTH);
 	if (iResult == SOCKET_ERROR) {
@@ -149,5 +158,6 @@ bool Socket::abort() {
 	// cleanup
 	closesocket(((Socketdata*)socketdata)->ConnectSocket);
 	WSACleanup();
+	status = false;
 	return true;
 }
