@@ -54,7 +54,7 @@ bool AsioSocket::waitForReadyRead(int exceed_time) {
 			std::cerr << error.message() << std::endl;
 		}
 		if (argp > 0) {
-			printf("Available data buffer size %ld\n", argp);
+			//printf("Available data buffer size %ld\n", argp);
 			return true;
 		}
 		else
