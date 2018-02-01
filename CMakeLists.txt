@@ -32,7 +32,9 @@ set(CUDA_NVCC_FLAGS
     )
 
 
-
+add_definitions(-D"_WIN32_WINNT 0x0A00") 
+add_definitions(-D"ASIO_STANDALONE")
+include_directories("E:/libs/asio/include")
 
 #Qt5
 if ( WIN32 )
@@ -88,7 +90,7 @@ set(MY_HEADER_FILES
     NetVirtualCamera/NetCameraHeader.h
     NetVirtualCamera/NetVirtualCamera.h
     NetVirtualCamera/CSharpSocketCppExport.h
-    NetVirtualCamera/Socket.h
+    NetVirtualCamera/AsioSocket.h
 
     qthread_main.h
 )
@@ -103,7 +105,7 @@ set(MY_SOURCE_FILES
     NetVirtualCamera/NetCameraCore.cpp
     NetVirtualCamera/NetVirtualCamera.cpp
 
-    NetVirtualCamera/Socket.cpp
+    NetVirtualCamera/AsioSocket.cpp
 
     # C++ source file
     NPPJpegCoder.cpp

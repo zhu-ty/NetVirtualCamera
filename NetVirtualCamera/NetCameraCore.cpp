@@ -34,7 +34,7 @@ CameraCommunicationThread::CameraCommunicationThread(int _id,std::vector<CameraS
 #ifdef CSharp
 	tcpSocket_ = new SKSocket();
 #else
-	tcpSocket_ = new Socket();
+	tcpSocket_ = new AsioSocket();
 #endif
 	receivePackage_.data_ = new char[CAMERA_IMAGE_DATA_MAX_SIZE];
 }

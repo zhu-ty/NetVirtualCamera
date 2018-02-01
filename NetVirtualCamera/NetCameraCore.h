@@ -5,7 +5,7 @@
 #ifdef CSharp
 #include "CSharpSocketCppExport.h"
 #else
-#include "Socket.h"
+#include "AsioSocket.h"
 #endif
 
 #include <opencv2/highgui.hpp>
@@ -68,7 +68,7 @@ private:
 #ifdef CSharp
 	SKSocket *tcpSocket_;
 #else
-	Socket *tcpSocket_;
+	AsioSocket *tcpSocket_;
 #endif
 	static const quint32 socketReadWaitForMs_ = 6000;						//阻塞的最长时间
 	void ResetSocket(void);
