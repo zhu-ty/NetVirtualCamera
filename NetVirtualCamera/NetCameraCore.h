@@ -70,7 +70,7 @@ private:
 #else
 	AsioSocket *tcpSocket_;
 #endif
-	static const quint32 socketReadWaitForMs_ = 12000;						//阻塞的最长时间
+	static const quint32 socketReadWaitForMs_ = 18000;						//阻塞的最长时间
 	void ResetSocket(void);
 	Communication_Camera_Status SendData(void);				
 	

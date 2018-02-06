@@ -3,13 +3,13 @@
 <serverAmount>1</serverAmount>
 <server_0>
   <_><id>0</id>
-    <ip>"10.8.5.188"</ip>
+    <ip>"10.8.5.199"</ip>
     <port>"54321"</port>
     <boxAmount>1</boxAmount>
     <box_0>
       <_><id>0</id>
         <mac>"00:11:1c:02:30:98"</mac>
-        <cameraAmount>2</cameraAmount>
+        <cameraAmount>4</cameraAmount>
         <camera_0>
           <_><id>0</id>
             <width>2048</width>
@@ -25,7 +25,7 @@
             <savePath>/home/tmp</savePath>
             <saveName>""</saveName></_></camera_0>
         <camera_1>
-          <_><id>0</id>
+          <_><id>1</id>
             <width>2048</width>
             <height>2048</height>
             <exposure>100</exposure>
@@ -37,5 +37,34 @@
             <skipNumber>0</skipNumber>
             <triggerMode>1</triggerMode>
             <savePath>/home/tmp</savePath>
-            <saveName>""</saveName></_></camera_1></_></box_0></_></server_0>
+            <saveName>""</saveName></_></camera_1>
+        <camera_2>
+          <_><id>2</id>
+            <width>2048</width>
+            <height>2048</height>
+            <exposure>100</exposure>
+            <gain>3</gain>
+            <brightness>32</brightness>
+            <contrast>32</contrast>
+            <bitLut>8</bitLut>
+            <saveFormat>1</saveFormat>
+            <skipNumber>0</skipNumber>
+            <triggerMode>1</triggerMode>
+            <savePath>/home/tmp</savePath>
+            <saveName>""</saveName></_></camera_2>    
+        <camera_3>
+          <_><id>3</id>
+            <width>2048</width>
+            <height>2048</height>
+            <exposure>100</exposure>
+            <gain>3</gain>
+            <brightness>32</brightness>
+            <contrast>32</contrast>
+            <bitLut>8</bitLut>
+            <saveFormat>1</saveFormat>
+            <skipNumber>0</skipNumber>
+            <triggerMode>1</triggerMode>
+            <savePath>/home/tmp</savePath>
+            <saveName>""</saveName></_></camera_3>    
+            </_></box_0></_></server_0>
 </opencv_storage>

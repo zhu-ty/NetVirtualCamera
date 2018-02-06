@@ -33,7 +33,7 @@ namespace cam {
 		// Client ID
 		int id_ = -1;
 		// Local wait time for each operation (ms)
-		int wait_time_local = 15000;
+		int wait_time_local = 19000;
 		// threads to capture images
 		std::thread ths;
 		bool isCaptureThreadRunning;
