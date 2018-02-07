@@ -79,13 +79,14 @@ namespace cam {
 		SysUtil::infoOutput("GenCameraNETVIR::capture_thread_JPEG_:: Capturing thread for camera all finish, exit successfully !");
 	}
 
-	int GenCameraNETVIR::wait_for_receive(int times)
+	int GenCameraNETVIR::wait_for_receive(float times)
 	{
+		int ret = 0;
 		for (int j = 0; j < serverVec_.size(); j++)
 		{
 			if (server_receiving_flag[j] == 0)
 			{
-				return 0;
+				return -1;
 			}
 		}
 		for (int i = 0;;)
@@ -103,6 +104,7 @@ namespace cam {
 			else if (i > wait_time_local * times)
 			{
 				SysUtil::warningOutput("GenCameraNETVIR::wait_for_receive wait too long, check your network");
+				ret = -2;
 				break;
 			}
 			else
@@ -115,7 +117,7 @@ namespace cam {
 		{
 			server_receiving_flag[j] = 0;
 		}
-		return 0;
+		return ret;
 	}
 
 	// constructor
@@ -430,6 +432,7 @@ namespace cam {
 			}
 
 		}
+		CameraCommunicationThread::socketReadWaitForMs_ = 5000 * MAX_CAMERA_NUM;
 		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 		{
 			cameraControlMessage_.requestorId_ = id_;
@@ -453,10 +456,11 @@ namespace cam {
 			server_receiving_flag[serverIndex] = 1;
 			emit StartOperation(cameraControlMessage_, serverVec_);
 		}
-		wait_for_receive();
+		wait_for_receive(MAX_CAMERA_NUM);
 		for (int i = 0; i < serverVec_.size(); i++)
 			if (data_receive[i].void_func.return_val != 0)
 				return data_receive[i].void_func.return_val;
+		CameraCommunicationThread::socketReadWaitForMs_ = 5000;
 		return 0;
 	}
 

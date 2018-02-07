@@ -10,6 +10,8 @@
 //#include <opencv2/cudawarping.hpp>
 //#include <opencv2/cudaimgproc.hpp>
 
+quint32 CameraCommunicationThread::socketReadWaitForMs_ = WAIT_MS_INIT;
+
 CameraCommunicationThread::CameraCommunicationThread(int _id,std::vector<CameraServerUnitTypeDef> &_serverVec)
 {
 	formVector_.resize(4096);
@@ -222,6 +224,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 {
 	serverVec_ = _serverVec;
 	if (_cameraControlMessage.serverIndex_<serverVec_.size()&&_cameraControlMessage.serverIndex_ == id_) {
+		//verify if the message is sent to this server
 		cameraControlMessage_ = _cameraControlMessage;
 		Communication_Camera_Command command = _cameraControlMessage.command_;
 		int serverIndex = _cameraControlMessage.serverIndex_;

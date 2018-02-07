@@ -30,7 +30,7 @@
 //#using "../NetVirtualCamera/CSharpSocket.dll"
 
 
-
+#define WAIT_MS_INIT 15000
 
 
 //#include "cuda_runtime.h"
@@ -45,6 +45,7 @@ public:
 	//npp::NPPJpegCoder decoder;   //cuda
 	//cv::cuda::GpuMat *img;
 	//cv::cuda::GpuMat *resizeimg;
+	static quint32 socketReadWaitForMs_;						//阻塞的最长时间
 	QTimer *updateTimer;			//该Timer用于更新设备状态
 	static const int32_t updateTimerInterval = 1000;		//心跳
 	QVector<int> formVector_;      //窗宽窗位表
@@ -70,7 +71,7 @@ private:
 #else
 	AsioSocket *tcpSocket_;
 #endif
-	static const quint32 socketReadWaitForMs_ = 18000;						//阻塞的最长时间
+	
 	void ResetSocket(void);
 	Communication_Camera_Status SendData(void);				
 	

@@ -32,7 +32,7 @@ set(CUDA_NVCC_FLAGS
     )
 
 
-add_definitions(-D"_WIN32_WINNT 0x0A00") 
+#add_definitions(-D"_WIN32_WINNT 0x0A00") 
 add_definitions(-D"ASIO_STANDALONE")
 include_directories("E:/libs/asio/include")
 

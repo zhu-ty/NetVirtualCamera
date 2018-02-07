@@ -33,7 +33,7 @@ namespace cam {
 		// Client ID
 		int id_ = -1;
 		// Local wait time for each operation (ms)
-		int wait_time_local = 19000;
+		int wait_time_local = 5000;
 		// threads to capture images
 		std::thread ths;
 		bool isCaptureThreadRunning;
@@ -65,7 +65,7 @@ namespace cam {
 		/**
 		@brief wait for all server respond
 		*/
-		int wait_for_receive(int times  = 1);
+		int wait_for_receive(float times  = 1);
 
 	public:
 		GenCameraNETVIR();
