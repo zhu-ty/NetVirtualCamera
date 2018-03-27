@@ -262,8 +262,11 @@ namespace cam {
 					switch (status) {
 					case Communication_Camera_Get_Image_Ok: {
 						int32_t imagesize = _cameraControlMessage.imageSize_;
-						SysUtil::infoOutput(("server" + QString::number(serverIndex, 10) +
-							"getImage OK,imageSize=" + QString::number(imagesize, 10)).toStdString());
+						if (isVerbose)
+						{
+							SysUtil::infoOutput(("server" + QString::number(serverIndex, 10) +
+								"getImage OK,imageSize=" + QString::number(imagesize, 10)).toStdString());
+						}
 						break;
 					}
 					case Communication_Camera_Get_Image_Invalid: {
