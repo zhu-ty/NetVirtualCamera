@@ -188,11 +188,11 @@ target_link_libraries(${name}
 
 )
 
-add_custom_command(
-        TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${PROJECT_SOURCE_DIR}/NetVirtualCamera/config.xml
-                ${CMAKE_CURRENT_BINARY_DIR}/config.xml)
+#add_custom_command(
+#        TARGET ${name} POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#                ${PROJECT_SOURCE_DIR}/NetVirtualCamera/config.xml
+#                ${CMAKE_CURRENT_BINARY_DIR}/config.xml)
 
 add_custom_command(
         TARGET ${name} POST_BUILD

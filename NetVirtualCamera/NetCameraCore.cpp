@@ -801,10 +801,12 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 		strTmp.str("");
 		strTmp << "server_" << i;
 		cv::FileNodeIterator serverFileNodeItr = configFileTmp[strTmp.str()].begin();
-		(*serverFileNodeItr)["id"] >> serverUnitTmp.id_;
+		//(*serverFileNodeItr)["id"] >> serverUnitTmp.id_;
+		serverUnitTmp.id_ = i;
 		(*serverFileNodeItr)["ip"] >> serverUnitTmp.ip_;
 		(*serverFileNodeItr)["port"] >> serverUnitTmp.port_;
-		(*serverFileNodeItr)["boxAmount"] >> serverUnitTmp.boxAmount_;
+		//(*serverFileNodeItr)["boxAmount"] >> serverUnitTmp.boxAmount_;
+		serverUnitTmp.boxAmount_ = 1;
 
 		//第二级的盒子节点
 		serverUnitTmp.boxVec_.clear();
@@ -813,30 +815,33 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 			strTmp.str("");
 			strTmp << "box_" << j;
 			cv::FileNodeIterator boxFileNodeItr = (*serverFileNodeItr)[strTmp.str()].begin();
-			(*boxFileNodeItr)["id"] >> boxUnitTmp.id_;
-			(*boxFileNodeItr)["mac"] >> boxUnitTmp.mac_;
+			//(*boxFileNodeItr)["id"] >> boxUnitTmp.id_;
+			boxUnitTmp.id_ = j;
+			//(*boxFileNodeItr)["mac"] >> boxUnitTmp.mac_;
+			boxUnitTmp.mac_ = "PIGPIGPIGPIGPIGGY";
 			(*boxFileNodeItr)["cameraAmount"] >> boxUnitTmp.cameraAmount_;
 
 			//第三级的相机节点
 			boxUnitTmp.cameraVec_.clear();
 			for (int32_t k = 0; k < boxUnitTmp.cameraAmount_; ++k) {
 				CameraParametersUnitTypeDef cameraUnitTmp;
-				strTmp.str("");
-				strTmp << "camera_" << k;
-				cv::FileNodeIterator cameraFileNodeItr = (*boxFileNodeItr)[strTmp.str()].begin();
-				(*cameraFileNodeItr)["id"] >> cameraUnitTmp.id_;
-				(*cameraFileNodeItr)["width"] >> cameraUnitTmp.width_;
-				(*cameraFileNodeItr)["height"] >> cameraUnitTmp.height_;
-				(*cameraFileNodeItr)["exposure"] >> cameraUnitTmp.exposure_;
-				(*cameraFileNodeItr)["gain"] >> cameraUnitTmp.gain_;
-				(*cameraFileNodeItr)["brightness"] >> cameraUnitTmp.brightness_;
-				(*cameraFileNodeItr)["contrast"] >> cameraUnitTmp.contrast_;
-				(*cameraFileNodeItr)["bitLut"] >> cameraUnitTmp.bitLut_;
-				(*cameraFileNodeItr)["saveFormat"] >> cameraUnitTmp.saveFormat_;
-				(*cameraFileNodeItr)["skipNumber"] >> cameraUnitTmp.skipNumber_;
-				(*cameraFileNodeItr)["triggerMode"] >> cameraUnitTmp.triggerMode_;
-				(*cameraFileNodeItr)["savePath"] >> cameraUnitTmp.savePath_;
-				(*cameraFileNodeItr)["saveName"] >> cameraUnitTmp.saveName_;
+				//strTmp.str("");
+				//strTmp << "camera_" << k;
+				//cv::FileNodeIterator cameraFileNodeItr = (*boxFileNodeItr)[strTmp.str()].begin();
+				cameraUnitTmp.id_ = k;
+				//(*cameraFileNodeItr)["id"] >> cameraUnitTmp.id_;
+				//(*cameraFileNodeItr)["width"] >> cameraUnitTmp.width_;
+				//(*cameraFileNodeItr)["height"] >> cameraUnitTmp.height_;
+				//(*cameraFileNodeItr)["exposure"] >> cameraUnitTmp.exposure_;
+				//(*cameraFileNodeItr)["gain"] >> cameraUnitTmp.gain_;
+				//(*cameraFileNodeItr)["brightness"] >> cameraUnitTmp.brightness_;
+				//(*cameraFileNodeItr)["contrast"] >> cameraUnitTmp.contrast_;
+				//(*cameraFileNodeItr)["bitLut"] >> cameraUnitTmp.bitLut_;
+				//(*cameraFileNodeItr)["saveFormat"] >> cameraUnitTmp.saveFormat_;
+				//(*cameraFileNodeItr)["skipNumber"] >> cameraUnitTmp.skipNumber_;
+				//(*cameraFileNodeItr)["triggerMode"] >> cameraUnitTmp.triggerMode_;
+				//(*cameraFileNodeItr)["savePath"] >> cameraUnitTmp.savePath_;
+				//(*cameraFileNodeItr)["saveName"] >> cameraUnitTmp.saveName_;
 				boxUnitTmp.cameraVec_.push_back(cameraUnitTmp);
 			}
 			serverUnitTmp.boxVec_.push_back(boxUnitTmp);
