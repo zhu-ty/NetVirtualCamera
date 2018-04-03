@@ -67,6 +67,8 @@ namespace cam {
 		*/
 		int wait_for_receive(float times  = 1);
 
+		void print_server_vec();
+
 	public:
 		GenCameraNETVIR();
 		~GenCameraNETVIR();

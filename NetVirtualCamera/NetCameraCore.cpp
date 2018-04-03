@@ -66,6 +66,7 @@ void CameraCommunicationThread::UpdateStatus(void)
 				serverVec_[id_].connectedFlag_ = false;
 			}
 		}
+		CameraControlMessage cameraControlMessage_;
 		cameraControlMessage_.requestorId_ = 0;
 		cameraControlMessage_.command_ = Communication_Camera_Get_Status;
 		cameraControlMessage_.status_ = serverVec_[id_].connectedFlag_ ? Communication_Camera_Get_Status_Ok : Communication_Camera_Get_Status_Invalid;
@@ -225,6 +226,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 	serverVec_ = _serverVec;
 	if (_cameraControlMessage.serverIndex_<serverVec_.size()&&_cameraControlMessage.serverIndex_ == id_) {
 		//verify if the message is sent to this server
+		CameraControlMessage cameraControlMessage_;
 		cameraControlMessage_ = _cameraControlMessage;
 		Communication_Camera_Command command = _cameraControlMessage.command_;
 		int serverIndex = _cameraControlMessage.serverIndex_;

@@ -29,48 +29,67 @@ namespace cam {
 			int camInd = 0;
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
-				cameraControlMessage_.serverIndex_ = serverIndex;
+				CameraControlMessage cameraControlMessage__;
+				cameraControlMessage__.serverIndex_ = serverIndex;
 				int boxIndex = 0;
-				cameraControlMessage_.command_ = Communication_Camera_Get_Image;//Get Image
-				cameraControlMessage_.status_ = Communication_Camera_Get_Image_Invalid;
-				cameraControlMessage_.imageType_ = 2;	
-				cameraControlMessage_.imageResizedFactor_ = 0;
-				cameraControlMessage_.cameraIndex_ = 0;
-				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
-				cameraControlMessage_.images_jpeg_raw.clear();
-				cameraControlMessage_.images_jpeg_len.clear();
-				for (int cameraIndex = 0; cameraIndex < cameraControlMessage_.cameraAmount_; cameraIndex++)
+				cameraControlMessage__.boxIndex_ = 0;
+				cameraControlMessage__.command_ = Communication_Camera_Get_Image;//Get Image
+				cameraControlMessage__.status_ = Communication_Camera_Get_Image_Invalid;
+				cameraControlMessage__.imageType_ = 2;
+				cameraControlMessage__.imageResizedFactor_ = 0;
+				cameraControlMessage__.cameraIndex_ = 0;
+				cameraControlMessage__.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				cameraControlMessage__.images_jpeg_raw.clear();
+				cameraControlMessage__.images_jpeg_len.clear();
+				for (int cameraIndex = 0; cameraIndex < cameraControlMessage__.cameraAmount_; cameraIndex++)
 				{
-					cameraControlMessage_.images_jpeg_raw.push_back(
+					if (camInd >= 9)
+					{
+						SysUtil::errorOutput("camInd >= 9, now is:");
+						std::cout << camInd << std::endl;
+						SysUtil::errorOutput("Control Message:");
+						cout << cameraControlMessage__.cameraAmount_ << endl;
+						SysUtil::errorOutput("ServerIndex:");
+						cout << serverIndex << endl;
+						SysUtil::errorOutput("cameraIndex:");
+						cout << cameraIndex << endl;
+						print_server_vec();
+					}
+						
+					cameraControlMessage__.images_jpeg_raw.push_back(
 						bufferImgs[thBufferInds[camInd]][camInd].data);
-					cameraControlMessage_.images_jpeg_len.push_back(
+					cameraControlMessage__.images_jpeg_len.push_back(
 						&bufferImgs[thBufferInds[camInd]][camInd].length);
 					camInd++;
 				}
 				server_receiving_flag[serverIndex] = 1;
-				emit StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(cameraControlMessage__, serverVec_);
 				
 			}
-			wait_for_receive();
+			int receive_flag_ret = wait_for_receive();
 			// end time
 			end_time = clock();
 			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
-			// increase index
-			for (int camIndTmp = 0; camIndTmp < this->cameraNum; camIndTmp++)
+
+			if (receive_flag_ret == 0)
 			{
-				if (camPurpose == GenCamCapturePurpose::Streaming)
-					thBufferInds[camIndTmp] = (thBufferInds[camIndTmp] + 1) % bufferSize;
-				else {
-					thBufferInds[camIndTmp] = thBufferInds[camIndTmp] + 1;
-					if (thBufferInds[camIndTmp] == bufferSize) {
-						thexit = 1;//TODO: with only one thread, just exit
+				// increase index
+				for (int camIndTmp = 0; camIndTmp < this->cameraNum; camIndTmp++)
+				{
+					if (camPurpose == GenCamCapturePurpose::Streaming)
+						thBufferInds[camIndTmp] = (thBufferInds[camIndTmp] + 1) % bufferSize;
+					else {
+						thBufferInds[camIndTmp] = thBufferInds[camIndTmp] + 1;
+						if (thBufferInds[camIndTmp] == bufferSize) {
+							thexit = 1;//TODO: with only one thread, just exit
+						}
 					}
 				}
-			}
-			// wait for some time
-			if (isVerbose) {
-				printf("GenCameraNETVIR::capture_thread_JPEG_ Camera all captures one frame, wait %lld milliseconds for next frame ...\n",
-					static_cast<long long>(waitTime));
+				// wait for some time
+				if (isVerbose) {
+					printf("GenCameraNETVIR::capture_thread_JPEG_ Camera all captures one frame, wait %lld milliseconds for next frame ...\n",
+						static_cast<long long>(waitTime));
+				}
 			}
 			if (waitTime > 0) {
 				SysUtil::sleep(waitTime);
@@ -118,6 +137,19 @@ namespace cam {
 			server_receiving_flag[j] = 0;
 		}
 		return ret;
+	}
+
+	void GenCameraNETVIR::print_server_vec()
+	{
+		for (int i = 0; i < serverVec_.size(); i++)
+		{
+			SysUtil::infoOutput("Server Vec Output::");
+			cout << " id: " << serverVec_[i].id_ << " ip: " << serverVec_[i].ip_ << " port: " << serverVec_[i].port_ << " boxamount: " << serverVec_[i].boxAmount_ << endl;
+			for (int j = 0; j < serverVec_[i].boxVec_.size(); j++)
+			{
+				cout << " box id: " << serverVec_[i].boxVec_[j].id_ << " box camera amount: " << serverVec_[i].boxVec_[j].cameraAmount_ << endl;
+			}
+		}
 	}
 
 	// constructor

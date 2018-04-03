@@ -63,7 +63,7 @@ private:
 	CameraClientSendPackageTypdef sendPackage_;								//发送消息包			
 	CameraClientReceivePackageTypeDef receivePackage_;						//接收消息包
 	std::vector<CameraServerUnitTypeDef> serverVec_;						//存储全局相机控制参数
-	CameraControlMessage cameraControlMessage_;								//相机控制消息包
+	// CameraControlMessage cameraControlMessage_;								//相机控制消息包
 	//QTcpSocket *tcpSocket_;													//socket通信子
 	/*CSharpSocket::SKTcpSocket ^tcpSocket_;*/
 #ifdef CSharp
