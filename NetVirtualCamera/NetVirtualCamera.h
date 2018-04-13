@@ -76,6 +76,15 @@ namespace cam {
 		/***********************************************************/
 		/*                   basic camera functions                */
 		/***********************************************************/
+
+		/**
+		@brief A generic interface for a int value and a string value
+		@param int value1: int value
+		@param std::string value2: string value
+		@return int
+		*/
+		int genSettingInterface(int value1, std::string value2) override;
+
 		/**
 		@brief init camera
 		@return int

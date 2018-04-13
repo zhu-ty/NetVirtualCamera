@@ -406,6 +406,15 @@ namespace cam {
 		return 0;
 	}
 
+	int GenCameraNETVIR::genSettingInterface(int value1, std::string value2)
+	{
+		if (value1 == 1) //means the config file path
+			communication_camera->configFileName_ = value2;
+		else
+			SysUtil::warningOutput("GenCameraNETVIR::genSettingInterface unknown int type, use value1 = 1 to set config file path");
+		return 0;
+	}
+
 	/**
 	@brief init camera
 	@return int
