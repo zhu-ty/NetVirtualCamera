@@ -1144,7 +1144,35 @@ namespace cam {
 						this->bufferImgs[j][i].type = this->bufferType;
 					}
 				}
-			
+				//first send quality!
+
+				for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+				{
+					cameraControlMessage_.requestorId_ = id_;
+					cameraControlMessage_.boxIndex_ = 0;
+					cameraControlMessage_.cameraIndex_ = 0;
+					cameraControlMessage_.operateAllFlag_ = false;
+					cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+
+					std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setJPEGQuality" +
+						" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+					SysUtil::infoOutput(atmp);
+
+					//SysUtil::infoOutput(("[Camera]Server" + QString::number(serverIndex, 10) + " setCaptureMode").toStdString());
+					cameraControlMessage_.serverIndex_ = serverIndex;
+					cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+					cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+					cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+					cameraControlMessage_.genfunc_ = "setJPEGQuality";
+					cameraControlMessage_.gendata_.param_func.param_int[0] = this->JPEGQuality;
+					cameraControlMessage_.gendata_.param_func.param_float[0] = this->sizeRatio;
+
+					server_receiving_flag[serverIndex] = 1;
+					emit StartOperation(cameraControlMessage_, serverVec_);
+				}
+				wait_for_receive();
+
 				for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 				{
 					cameraControlMessage_.requestorId_ = id_;
