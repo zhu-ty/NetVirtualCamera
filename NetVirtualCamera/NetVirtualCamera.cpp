@@ -18,7 +18,28 @@ namespace cam {
 		clock_t begin_time, end_time;
 		//TODO: Can't set fps for each camera right now
 		double time = 1000.0 / static_cast<double>(camInfos[0].fps);
+
+		//used for frame test
+		double currentTime = 0;
+		double lastTime = 0;
+		int nbFrames = 0;
+
+
 		for (;;) {
+
+			currentTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+			nbFrames++;
+			if (currentTime - lastTime >= 3.0)
+			{
+				// If last prinf() was more than 1 sec ago, printf and reset timer
+				// printf("Main Thread: %f ms/frame\n", 1000.0 / double(nbFrames));
+				printf("Capture  Thread: %.2f frame/s\n", double(nbFrames) / (currentTime - lastTime));
+				nbFrames = 0;
+				lastTime = currentTime;
+			}
+
+
+
 			// begin time
 			begin_time = clock();
 			// check status
