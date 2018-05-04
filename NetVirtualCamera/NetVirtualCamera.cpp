@@ -40,6 +40,7 @@ namespace cam {
 				cameraControlMessage__.cameraIndex_ = 0;
 				cameraControlMessage__.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
 				cameraControlMessage__.images_jpeg_raw.clear();
+				cameraControlMessage__.images_jpeg_ratio.clear();
 				cameraControlMessage__.images_jpeg_len.clear();
 				for (int cameraIndex = 0; cameraIndex < cameraControlMessage__.cameraAmount_; cameraIndex++)
 				{
@@ -58,10 +59,15 @@ namespace cam {
 						
 					cameraControlMessage__.images_jpeg_raw.push_back(
 						bufferImgs[thBufferInds[camInd]][camInd].data);
+					cameraControlMessage__.images_jpeg_ratio.push_back(
+						(int *)&bufferImgs[thBufferInds[camInd]][camInd].ratio);
 					cameraControlMessage__.images_jpeg_len.push_back(
 						&bufferImgs[thBufferInds[camInd]][camInd].length);
+					//cameraControlMessage__.imageResizedFactor_ |= ((this->imgRatios[camInd] ))
+					cameraControlMessage__.imageResizedFactor_ = set_resize_factor(cameraControlMessage__.imageResizedFactor_, this->imgRatios[camInd], cameraIndex);
 					camInd++;
 				}
+				//SysUtil::infoOutput(cv::format("Set Factor:0x%08x", cameraControlMessage__.imageResizedFactor_));
 				server_receiving_flag[serverIndex] = 1;
 				emit StartOperation(cameraControlMessage__, serverVec_);
 				
@@ -150,6 +156,15 @@ namespace cam {
 				cout << " box id: " << serverVec_[i].boxVec_[j].id_ << " box camera amount: " << serverVec_[i].boxVec_[j].cameraAmount_ << endl;
 			}
 		}
+	}
+
+	int GenCameraNETVIR::set_resize_factor(int factor, cam::GenCamImgRatio ratio, int cam_idx)
+	{
+		if (cam_idx > 7)
+			SysUtil::errorOutput("GenCameraNETVIR::set_resize_factor only support up to 8 cameras");
+		//骚操作 每4个bit代表一个相机的resize factor
+		factor |= ((int)ratio) << (cam_idx * 4);
+		return factor;
 	}
 
 	// constructor
@@ -409,9 +424,52 @@ namespace cam {
 	int GenCameraNETVIR::genSettingInterface(int value1, std::string value2)
 	{
 		if (value1 == 1) //means the config file path
+		{
 			communication_camera->configFileName_ = value2;
+			return 0;
+		}
+		else if (value1 == 2) //means to upload the image ratio to the server
+		{
+			int camFullIdx = 0;
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				cameraControlMessage_.requestorId_ = id_;
+				cameraControlMessage_.boxIndex_ = 0;
+				cameraControlMessage_.cameraIndex_ = 0;
+				cameraControlMessage_.operateAllFlag_ = false;
+				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+
+				//TODO : delete this output
+				std::string atmp = ((QString) "[Client ] send  " + "(OpenCameraCommand) setImageRatios" +
+					" to" + " [Server" + QString::number(serverIndex, 10) + "]").toStdString();
+				SysUtil::infoOutput(atmp);
+
+				cameraControlMessage_.serverIndex_ = serverIndex;
+				cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
+				cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
+				cameraControlMessage_.openCameraOperationIndex_ = -1;
+
+				cameraControlMessage_.genfunc_ = "setImageRatios";
+				for (int i = 0; i < serverVec_[serverIndex].boxVec_[0].cameraAmount_; i++)
+				{
+					cameraControlMessage_.gendata_.param_func.param_int[i] = (int)this->imgRatios[camFullIdx];
+					camFullIdx++;
+				}
+				server_receiving_flag[serverIndex] = 1;
+				emit StartOperation(cameraControlMessage_, serverVec_);
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
 		else
-			SysUtil::warningOutput("GenCameraNETVIR::genSettingInterface unknown int type, use value1 = 1 to set config file path");
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::genSettingInterface unknown int type");
+			SysUtil::warningOutput("Use value1 = 1 to set config file path");
+			SysUtil::warningOutput("Use value1 = 2 to upload the imgRatio");
+		}
 		return 0;
 	}
 
@@ -453,6 +511,9 @@ namespace cam {
 			this->cameraNum += serverVec_[i].boxVec_[0].cameraAmount_;
 			server_receiving_flag.push_back(0);
 		}
+		this->imgRatios.resize(this->cameraNum);
+		for (int i = 0; i < this->cameraNum; i++)
+			this->imgRatios[i] = cam::GenCamImgRatio::Full;
 		this->isInit = true;
 		for (int i = 0;;)
 		{

@@ -139,6 +139,36 @@ namespace cam {
 	}
 
 	/*************************************************************/
+	/*   function to set jepg scale ratio for capture function   */
+	/*************************************************************/
+	/**
+	@brief set scale ratio vector of capture function
+	@param std::vector<GenCamImgRatio> imgRatios: input scale ratio vector
+	@return int
+	*/
+	int GenCamera::setImageRatios(std::vector<GenCamImgRatio> imgRatios)
+	{
+		this->imgRatios = imgRatios;
+		return 0;
+	}
+
+	/**
+	@brief make image size even
+	@param cv::Size size: input size
+	@param cam::GenCamImgRatio ratio: input resize ratio
+	@return cv::Size: even size (NPP only accept even size)
+	*/
+	cv::Size GenCamera::makeDoubleSize(cv::Size size, cam::GenCamImgRatio ratio) {
+		cv::Size out;
+		float r = 1.0f / powf(2.0f, static_cast<int>(ratio));
+		out.width = static_cast<int>(size.width * r);
+		out.height = static_cast<int>(size.height * r);
+		out.width += (out.width % 2);
+		out.height += (out.height % 2);
+		return out;
+	}
+
+	/*************************************************************/
 	/*    function to set mapping vector of capture function     */
 	/*************************************************************/
 	/**

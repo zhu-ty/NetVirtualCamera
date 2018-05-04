@@ -69,6 +69,8 @@ namespace cam {
 
 		void print_server_vec();
 
+		int set_resize_factor(int factor, cam::GenCamImgRatio ratio, int cam_idx);
+
 	public:
 		GenCameraNETVIR();
 		~GenCameraNETVIR();

@@ -465,9 +465,10 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 				dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraAmount_;
 				dataTmp.cameraIndex_ = cameraIndex;
 				dataTmp.imageType_ = _cameraControlMessage.imageType_;
-				dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_ > 0 ? _cameraControlMessage.imageResizedFactor_ : 1;
-				dataTmp.resizedWidth_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].width_ / dataTmp.resizeFactor_;
-				dataTmp.resizedHeight_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].height_ / dataTmp.resizeFactor_;
+				//dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_ > 0 ? _cameraControlMessage.imageResizedFactor_ : 1;
+				dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_;
+				dataTmp.resizedWidth_ = 0;
+				dataTmp.resizedHeight_ = 0;
 
 				sendPackage_.command_ = Communication_Camera_Get_Image;
 				memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
@@ -493,12 +494,17 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 							for (int cameraIndex = 0; cameraIndex < receiveDataTmp.cameraAmount_; cameraIndex++)
 							{
 								int32_t jpegdatalength = 0;
+								int32_t jpeg_ratio = 0;
 								memcpy(&jpegdatalength, jpegdatas, sizeof(int32_t));
 								jpegdatas = jpegdatas + sizeof(int32_t);
+								memcpy(&jpeg_ratio, jpegdatas, sizeof(int32_t));
+								jpegdatas = jpegdatas + sizeof(int32_t);
+
 								memcpy(cameraControlMessage_.images_jpeg_raw[cameraIndex], jpegdatas, jpegdatalength);
-								//cameraControlMessage_.images_[cameraIndex]->length = jpegdatalength;
-								*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
 								jpegdatas = jpegdatas + jpegdatalength;
+								*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
+								*(cameraControlMessage_.images_jpeg_ratio[cameraIndex]) = jpeg_ratio;
+								
 							}
 
 						}
@@ -508,64 +514,64 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 				emit OperationFinished(cameraControlMessage_);
 			}
 			else {
-				//TODO: delete this part
-				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
-					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
-						int boxIndex = i;
-						int cameraIndex = j;
+				cout << "Warning at Communication_Camera_Get_Image operateAllFlag == true!?" << endl;
+				//for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
+				//	for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
+				//		int boxIndex = i;
+				//		int cameraIndex = j;
 
-						CameraGetImagePackage dataTmp;
-						dataTmp.boxAmount_ = serverVec_[serverIndex].boxAmount_;
-						dataTmp.boxIndex_ = boxIndex;
-						dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraAmount_;
-						dataTmp.cameraIndex_ = cameraIndex;
-						dataTmp.imageType_ = _cameraControlMessage.imageType_;
-						dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_ > 0 ? _cameraControlMessage.imageResizedFactor_ : 1;
-						dataTmp.resizedWidth_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].width_ / dataTmp.resizeFactor_;
-						dataTmp.resizedHeight_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].height_ / dataTmp.resizeFactor_;
+				//		CameraGetImagePackage dataTmp;
+				//		dataTmp.boxAmount_ = serverVec_[serverIndex].boxAmount_;
+				//		dataTmp.boxIndex_ = boxIndex;
+				//		dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraAmount_;
+				//		dataTmp.cameraIndex_ = cameraIndex;
+				//		dataTmp.imageType_ = _cameraControlMessage.imageType_;
+				//		dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_ > 0 ? _cameraControlMessage.imageResizedFactor_ : 1;
+				//		dataTmp.resizedWidth_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].width_ / dataTmp.resizeFactor_;
+				//		dataTmp.resizedHeight_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].height_ / dataTmp.resizeFactor_;
 
-						sendPackage_.command_ = Communication_Camera_Get_Image;
-						memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
-						cameraControlMessage_.status_ = SendData();
-						///解析接收到的数据
-						if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
-							CameraGetImagePackage receiveDataTmp;
-							memcpy(&receiveDataTmp, receivePackage_.data_, sizeof(CameraGetImagePackage));
-							if (dataTmp == receiveDataTmp) {
-								cameraControlMessage_.status_ = receivePackage_.status_;
-								cameraControlMessage_.boxIndex_ = receiveDataTmp.boxIndex_;
-								cameraControlMessage_.cameraIndex_ = receiveDataTmp.cameraIndex_;
-								cameraControlMessage_.imageType_ = receiveDataTmp.imageType_;
-								cameraControlMessage_.imageResizedFactor_ = receiveDataTmp.resizeFactor_;
-								cameraControlMessage_.imageResizedWidth_ = receiveDataTmp.resizedWidth_;
-								cameraControlMessage_.imageResizedHeight_ = receiveDataTmp.resizedHeight_;
-								cameraControlMessage_.cameraAmount_ = receiveDataTmp.cameraAmount_;
-								if (cameraControlMessage_.images_jpeg_raw.size() != 0)
-								{
-									cameraControlMessage_.images_jpeg_raw.clear();
-								}
-								int32_t jpegdatatotallength = receivePackage_.dataSize_ - sizeof(CameraGetImagePackage);
-								char *jpegdatas = receivePackage_.data_ + sizeof(CameraGetImagePackage);
-								if (cameraControlMessage_.images_jpeg_raw.size() == receiveDataTmp.cameraAmount_)
-								{
-									for (int cameraIndex = 0; cameraIndex < receiveDataTmp.cameraAmount_; cameraIndex++)
-									{
-										int32_t jpegdatalength = 0;
-										memcpy(&jpegdatalength, jpegdatas, sizeof(int32_t));
-										jpegdatas = jpegdatas + sizeof(int32_t);
-										//memcpy(cameraControlMessage_.images_[cameraIndex]->data, jpegdatas, jpegdatalength);
-										//cameraControlMessage_.images_[cameraIndex]->length = jpegdatalength;
-										memcpy(cameraControlMessage_.images_jpeg_raw[cameraIndex], jpegdatas, jpegdatalength);
-										*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
-										jpegdatas = jpegdatas + jpegdatalength;
-									}
-								}
-								cameraControlMessage_.imageSize_ = jpegdatatotallength;
-							}
-						}
-						emit OperationFinished(cameraControlMessage_);
-					}
-				}
+				//		sendPackage_.command_ = Communication_Camera_Get_Image;
+				//		memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
+				//		cameraControlMessage_.status_ = SendData();
+				//		///解析接收到的数据
+				//		if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
+				//			CameraGetImagePackage receiveDataTmp;
+				//			memcpy(&receiveDataTmp, receivePackage_.data_, sizeof(CameraGetImagePackage));
+				//			if (dataTmp == receiveDataTmp) {
+				//				cameraControlMessage_.status_ = receivePackage_.status_;
+				//				cameraControlMessage_.boxIndex_ = receiveDataTmp.boxIndex_;
+				//				cameraControlMessage_.cameraIndex_ = receiveDataTmp.cameraIndex_;
+				//				cameraControlMessage_.imageType_ = receiveDataTmp.imageType_;
+				//				cameraControlMessage_.imageResizedFactor_ = receiveDataTmp.resizeFactor_;
+				//				cameraControlMessage_.imageResizedWidth_ = receiveDataTmp.resizedWidth_;
+				//				cameraControlMessage_.imageResizedHeight_ = receiveDataTmp.resizedHeight_;
+				//				cameraControlMessage_.cameraAmount_ = receiveDataTmp.cameraAmount_;
+				//				if (cameraControlMessage_.images_jpeg_raw.size() != 0)
+				//				{
+				//					cameraControlMessage_.images_jpeg_raw.clear();
+				//				}
+				//				int32_t jpegdatatotallength = receivePackage_.dataSize_ - sizeof(CameraGetImagePackage);
+				//				char *jpegdatas = receivePackage_.data_ + sizeof(CameraGetImagePackage);
+				//				if (cameraControlMessage_.images_jpeg_raw.size() == receiveDataTmp.cameraAmount_)
+				//				{
+				//					for (int cameraIndex = 0; cameraIndex < receiveDataTmp.cameraAmount_; cameraIndex++)
+				//					{
+				//						int32_t jpegdatalength = 0;
+				//						memcpy(&jpegdatalength, jpegdatas, sizeof(int32_t));
+				//						jpegdatas = jpegdatas + sizeof(int32_t);
+				//						//memcpy(cameraControlMessage_.images_[cameraIndex]->data, jpegdatas, jpegdatalength);
+				//						//cameraControlMessage_.images_[cameraIndex]->length = jpegdatalength;
+				//						memcpy(cameraControlMessage_.images_jpeg_raw[cameraIndex], jpegdatas, jpegdatalength);
+				//						*(cameraControlMessage_.images_jpeg_len[cameraIndex]) = jpegdatalength;
+				//						jpegdatas = jpegdatas + jpegdatalength;
+				//					}
+				//				}
+				//				cameraControlMessage_.imageSize_ = jpegdatatotallength;
+				//			}
+				//		}
+				//		emit OperationFinished(cameraControlMessage_);
+				//	}
+				//}
 			}
 			break;
 		}
