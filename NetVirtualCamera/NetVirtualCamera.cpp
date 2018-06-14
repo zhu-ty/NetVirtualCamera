@@ -65,10 +65,10 @@ namespace cam {
 				cameraControlMessage__.images_jpeg_len.clear();
 				for (int cameraIndex = 0; cameraIndex < cameraControlMessage__.cameraAmount_; cameraIndex++)
 				{
-					if (camInd >= 9)
+					if (cameraIndex >= 9)
 					{
-						SysUtil::errorOutput("camInd >= 9, now is:");
-						std::cout << camInd << std::endl;
+						SysUtil::errorOutput("cameraIndex >= 9, now is:");
+						std::cout << cameraIndex << std::endl;
 						SysUtil::errorOutput("Control Message:");
 						cout << cameraControlMessage__.cameraAmount_ << endl;
 						SysUtil::errorOutput("ServerIndex:");
