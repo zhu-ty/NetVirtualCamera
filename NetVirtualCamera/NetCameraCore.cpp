@@ -514,7 +514,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 				emit OperationFinished(cameraControlMessage_);
 			}
 			else {
-				cout << "Warning at Communication_Camera_Get_Image operateAllFlag == true!?" << endl;
+				std::cout << "Warning at Communication_Camera_Get_Image operateAllFlag == true!?" << endl;
 				//for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 				//	for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 				//		int boxIndex = i;
@@ -710,7 +710,7 @@ CameraCommunication::CameraCommunication()
 	}        //默认取高八位
 	//加载默认的配置文件
 
-	LoadConfigFile(QString::fromStdString(configFileName_));
+	//LoadConfigFile(QString::fromStdString(configFileName_));
 
 	updateTimer = new QTimer(this);
 	QObject::connect(updateTimer, SIGNAL(timeout()), this, SLOT(TimerTimeout()));

@@ -70,11 +70,11 @@ namespace cam {
 						SysUtil::errorOutput("cameraIndex >= 9, now is:");
 						std::cout << cameraIndex << std::endl;
 						SysUtil::errorOutput("Control Message:");
-						cout << cameraControlMessage__.cameraAmount_ << endl;
+						std::cout << cameraControlMessage__.cameraAmount_ << endl;
 						SysUtil::errorOutput("ServerIndex:");
-						cout << serverIndex << endl;
+						std::cout << serverIndex << endl;
 						SysUtil::errorOutput("cameraIndex:");
-						cout << cameraIndex << endl;
+						std::cout << cameraIndex << endl;
 						print_server_vec();
 					}
 						
@@ -171,10 +171,10 @@ namespace cam {
 		for (int i = 0; i < serverVec_.size(); i++)
 		{
 			SysUtil::infoOutput("Server Vec Output::");
-			cout << " id: " << serverVec_[i].id_ << " ip: " << serverVec_[i].ip_ << " port: " << serverVec_[i].port_ << " boxamount: " << serverVec_[i].boxAmount_ << endl;
+			std::cout << " id: " << serverVec_[i].id_ << " ip: " << serverVec_[i].ip_ << " port: " << serverVec_[i].port_ << " boxamount: " << serverVec_[i].boxAmount_ << endl;
 			for (int j = 0; j < serverVec_[i].boxVec_.size(); j++)
 			{
-				cout << " box id: " << serverVec_[i].boxVec_[j].id_ << " box camera amount: " << serverVec_[i].boxVec_[j].cameraAmount_ << endl;
+				std::cout << " box id: " << serverVec_[i].boxVec_[j].id_ << " box camera amount: " << serverVec_[i].boxVec_[j].cameraAmount_ << endl;
 			}
 		}
 	}
