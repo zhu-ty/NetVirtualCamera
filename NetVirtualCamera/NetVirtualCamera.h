@@ -28,8 +28,8 @@ namespace cam {
 		CameraCommunication *communication_camera;
 		// ServerVector
 		std::vector<CameraServerUnitTypeDef> serverVec_;
-		// ServerControlMessage
-		CameraControlMessage cameraControlMessage_;
+		// ServerControlMessage ->use local message due to some thread problem
+		// CameraControlMessage cameraControlMessage_;
 		// Client ID
 		int id_ = -1;
 		// Local wait time for each operation (ms)
@@ -73,7 +73,7 @@ namespace cam {
 
 		int get_sub_index(int global_index, int & server_index, int & camera_index);
 
-		int build_control_message(int server_index);
+		int build_control_message(int server_index, CameraControlMessage & message);
 
 	public:
 		GenCameraNETVIR();

@@ -215,17 +215,17 @@ namespace cam {
 		return 0;
 	}
 
-	int GenCameraNETVIR::build_control_message(int server_index)
+	int GenCameraNETVIR::build_control_message(int server_index, CameraControlMessage & message)
 	{
-		cameraControlMessage_.requestorId_ = id_;
-		cameraControlMessage_.boxIndex_ = 0;
-		cameraControlMessage_.cameraIndex_ = 0;
-		cameraControlMessage_.operateAllFlag_ = false;
-		cameraControlMessage_.cameraAmount_ = serverVec_[server_index].boxVec_[0].cameraAmount_;
-		cameraControlMessage_.serverIndex_ = server_index;
-		cameraControlMessage_.command_ = Communication_Camera_Open_Camera;
-		cameraControlMessage_.status_ = Communication_Camera_Open_Camera_Invalid;
-		cameraControlMessage_.openCameraOperationIndex_ = -1;
+		message.requestorId_ = id_;
+		message.boxIndex_ = 0;
+		message.cameraIndex_ = 0;
+		message.operateAllFlag_ = false;
+		message.cameraAmount_ = serverVec_[server_index].boxVec_[0].cameraAmount_;
+		message.serverIndex_ = server_index;
+		message.command_ = Communication_Camera_Open_Camera;
+		message.status_ = Communication_Camera_Open_Camera_Invalid;
+		message.openCameraOperationIndex_ = -1;
 		return 0;
 	}
 
@@ -283,13 +283,13 @@ namespace cam {
 	void GenCameraNETVIR::OperationFinished(CameraControlMessage &_cameraControlMessage)
 	{
 		if (_cameraControlMessage.requestorId_ == id_ || _cameraControlMessage.requestorId_ == 0) {
-			cameraControlMessage_ = _cameraControlMessage;
-			Communication_Camera_Command command = cameraControlMessage_.command_;
-			Communication_Camera_Status status = cameraControlMessage_.status_;
-			int serverIndex = cameraControlMessage_.serverIndex_;
-			int boxIndex = cameraControlMessage_.boxIndex_;
-			int cameraIndex = cameraControlMessage_.cameraIndex_;
-			int cameraAmount = cameraControlMessage_.cameraAmount_;
+			//cameraControlMessage_ = _cameraControlMessage;
+			Communication_Camera_Command command = _cameraControlMessage.command_;
+			Communication_Camera_Status status = _cameraControlMessage.status_;
+			int serverIndex = _cameraControlMessage.serverIndex_;
+			int boxIndex = _cameraControlMessage.boxIndex_;
+			int cameraIndex = _cameraControlMessage.cameraIndex_;
+			int cameraAmount = _cameraControlMessage.cameraAmount_;
 			bool operateAllFlag = true;
 			int currentBoxIndex = 0;
 			int currentCameraIndex = 0;
@@ -328,26 +328,26 @@ namespace cam {
 					std::ostringstream strTmp("");
 					int cameraId = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].id_;
 					//data_receive[cameraControlMessage_.serverIndex_] = cameraControlMessage_.gendata_;
-					memcpy(&data_receive[cameraControlMessage_.serverIndex_], &cameraControlMessage_.gendata_, sizeof(GenCameraControlData));
+					memcpy(&data_receive[_cameraControlMessage.serverIndex_], &_cameraControlMessage.gendata_, sizeof(GenCameraControlData));
 					server_receiving_flag[serverIndex] = -1;
 					switch (status) {
 					case Communication_Camera_Open_Camera_Ok: {
 						std::string atmp = ("[Server" + QString::number(serverIndex, 10) + "] reply (OpenCameraCommand) ").toStdString();
-						atmp = atmp + cameraControlMessage_.genfunc_ + " OK.";
+						atmp = atmp + _cameraControlMessage.genfunc_ + " OK.";
 						SysUtil::infoOutput(atmp);
 						this->isCapture = true;
 						break;
 					}
 					case Communication_Camera_Open_Camera_Invalid: {
 						strTmp << "Failed to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
-							<< "! With function"<< cameraControlMessage_.genfunc_;
+							<< "! With function"<< _cameraControlMessage.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
 						this->isCapture = false;
 						break;
 					}
 					case Communication_Camera_Action_Overtime: {
 						strTmp << "Overtime to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
-							<< "! With function" << cameraControlMessage_.genfunc_;
+							<< "! With function" << _cameraControlMessage.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
 						this->isCapture = false;
 						break;
@@ -453,13 +453,14 @@ namespace cam {
 		}
 		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 		{
-			build_control_message(serverIndex);
+			CameraControlMessage __message;
+			build_control_message(serverIndex, __message);
 			SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) makeSetEffective %d to [Server%d]", 
 				k, serverIndex));
-			cameraControlMessage_.genfunc_ = "makeSetEffective";
-			cameraControlMessage_.gendata_.param_func.param_int[0] = k;
+			__message.genfunc_ = "makeSetEffective";
+			__message.gendata_.param_func.param_int[0] = k;
 			server_receiving_flag[serverIndex] = 1;
-			emit StartOperation(cameraControlMessage_, serverVec_);
+			emit StartOperation(__message, serverVec_);
 		}
 		wait_for_receive();
 		for (int i = 0; i < serverVec_.size(); i++)
@@ -480,16 +481,17 @@ namespace cam {
 			int camFullIdx = 0;
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
-				build_control_message(serverIndex);
+				CameraControlMessage __message;
+				build_control_message(serverIndex, __message);
 				SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setImageRatios to [Server%d]", serverIndex));
-				cameraControlMessage_.genfunc_ = "setImageRatios";
+				__message.genfunc_ = "setImageRatios";
 				for (int i = 0; i < serverVec_[serverIndex].boxVec_[0].cameraAmount_; i++)
 				{
-					cameraControlMessage_.gendata_.param_func.param_int[i] = (int)this->imgRatios[camFullIdx];
+					__message.gendata_.param_func.param_int[i] = (int)this->imgRatios[camFullIdx];
 					camFullIdx++;
 				}
 				server_receiving_flag[serverIndex] = 1;
-				emit StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(__message, serverVec_);
 			}
 			wait_for_receive();
 			for (int i = 0; i < serverVec_.size(); i++)
@@ -573,11 +575,12 @@ namespace cam {
 		CameraCommunicationThread::socketReadWaitForMs_ = 5000 * MAX_CAMERA_NUM;
 		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 		{
-			build_control_message(serverIndex);
+			CameraControlMessage __message;
+			build_control_message(serverIndex, __message);
 			SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) init to [Server%d]", serverIndex));
-			cameraControlMessage_.genfunc_ = "init";
+			__message.genfunc_ = "init";
 			server_receiving_flag[serverIndex] = 1;
-			emit StartOperation(cameraControlMessage_, serverVec_);
+			emit StartOperation(__message, serverVec_);
 		}
 		wait_for_receive(MAX_CAMERA_NUM);
 		for (int i = 0; i < serverVec_.size(); i++)
@@ -603,11 +606,12 @@ namespace cam {
 
 		for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 		{
-			build_control_message(serverIndex);
+			CameraControlMessage __message;
+			build_control_message(serverIndex, __message);
 			SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) getCamInfos to [Server%d]", serverIndex));
-			cameraControlMessage_.genfunc_ = "getCamInfos";
+			__message.genfunc_ = "getCamInfos";
 			server_receiving_flag[serverIndex] = 1;
-			emit StartOperation(cameraControlMessage_, serverVec_);
+			emit StartOperation(__message, serverVec_);
 		}
 		wait_for_receive();
 		int camIndex = 0;
@@ -653,11 +657,12 @@ namespace cam {
 		{
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
-				build_control_message(serverIndex);
+				CameraControlMessage __message;
+				build_control_message(serverIndex, __message);
 				SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) startCapture to [Server%d]", serverIndex));
-				cameraControlMessage_.genfunc_ = "startCapture";
+				__message.genfunc_ = "startCapture";
 				server_receiving_flag[serverIndex] = 1;
-				emit StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(__message, serverVec_);
 			}
 			wait_for_receive(5);
 			//return 
@@ -684,11 +689,12 @@ namespace cam {
 		{
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
-				cameraControlMessage_.requestorId_ = id_;
-				cameraControlMessage_.boxIndex_ = 0;
-				cameraControlMessage_.cameraIndex_ = 0;
-				cameraControlMessage_.operateAllFlag_ = false;
-				cameraControlMessage_.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
+				CameraControlMessage __message;
+				__message.requestorId_ = id_;
+				__message.boxIndex_ = 0;
+				__message.cameraIndex_ = 0;
+				__message.operateAllFlag_ = false;
+				__message.cameraAmount_ = serverVec_[serverIndex].boxVec_[0].cameraAmount_;
 
 				//std::string atmp = ("[Client ] send  Server" + QString::number(serverIndex, 10) + "(CloseCameraCommand) close camera").toStdString();
 				std::string atmp = ((QString) "[Client ] send  " + "(CloseCameraCommand) close camera" +
@@ -696,11 +702,11 @@ namespace cam {
 				SysUtil::infoOutput(atmp);
 
 				//SysUtil::infoOutput(("[Camera]Closing server" + QString::number(serverIndex, 10) + "'s camera...").toStdString());
-				cameraControlMessage_.serverIndex_ = serverIndex;
-				cameraControlMessage_.command_ = Communication_Camera_Close_Camera;//Open Camera
-				cameraControlMessage_.status_ = Communication_Camera_Close_Camera_Invalid;
-				cameraControlMessage_.openCameraOperationIndex_ = -1; //-1�����޸����в���
-				emit StartOperation(cameraControlMessage_, serverVec_);
+				__message.serverIndex_ = serverIndex;
+				__message.command_ = Communication_Camera_Close_Camera;//Open Camera
+				__message.status_ = Communication_Camera_Close_Camera_Invalid;
+				__message.openCameraOperationIndex_ = -1; //-1�����޸����в���
+				emit StartOperation(__message, serverVec_);
 			}
 			for (int i = 0;;)
 			{
@@ -754,14 +760,15 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setFPS %d %f %f to [Server%d]", camera_idx_searched, fps, exposureUpperLimitRatio, serverIndex));
-					cameraControlMessage_.genfunc_ = "setFPS";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_float[0] = fps;
-					cameraControlMessage_.gendata_.param_func.param_float[1] = exposureUpperLimitRatio;
+					__message.genfunc_ = "setFPS";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_float[0] = fps;
+					__message.gendata_.param_func.param_float[1] = exposureUpperLimitRatio;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -793,12 +800,13 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoWhiteBalance %d to [Server%d]", camera_idx_searched, serverIndex));
-					cameraControlMessage_.genfunc_ = "setAutoWhiteBalance";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.genfunc_ = "setAutoWhiteBalance";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -833,16 +841,17 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setWhiteBalance %d %f %f %f to [Server%d]",
 						camera_idx_searched, redGain, greenGain, blueGain, serverIndex));
-					cameraControlMessage_.genfunc_ = "setWhiteBalance";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_float[0] = redGain;
-					cameraControlMessage_.gendata_.param_func.param_float[1] = greenGain;
-					cameraControlMessage_.gendata_.param_func.param_float[2] = blueGain;
+					__message.genfunc_ = "setWhiteBalance";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_float[0] = redGain;
+					__message.gendata_.param_func.param_float[1] = greenGain;
+					__message.gendata_.param_func.param_float[2] = blueGain;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -874,14 +883,15 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoExposure %d %d to [Server%d]",
 						camera_idx_searched, (int)autoExposure, serverIndex));
-					cameraControlMessage_.genfunc_ = "setAutoExposure";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)autoExposure;
+					__message.genfunc_ = "setAutoExposure";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_enum[0] = (int)autoExposure;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -915,14 +925,15 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoExposureLevel %d %f to [Server%d]",
 						camera_idx_searched, level, serverIndex));
-					cameraControlMessage_.genfunc_ = "setAutoExposureLevel";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_float[0] = level;
+					__message.genfunc_ = "setAutoExposureLevel";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_float[0] = level;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -958,15 +969,16 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoExposureCompensation %d %d %f to [Server%d]",
 						camera_idx_searched, (int)status, relativeEV, serverIndex));
-					cameraControlMessage_.genfunc_ = "setAutoExposureCompensation";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)status;
-					cameraControlMessage_.gendata_.param_func.param_float[0] = relativeEV;
+					__message.genfunc_ = "setAutoExposureCompensation";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_enum[0] = (int)status;
+					__message.gendata_.param_func.param_float[0] = relativeEV;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -998,14 +1010,15 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setExposure %d %d to [Server%d]",
 						camera_idx_searched, time, serverIndex));
-					cameraControlMessage_.genfunc_ = "setExposure";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_int[1] = time;
+					__message.genfunc_ = "setExposure";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_int[1] = time;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -1037,14 +1050,15 @@ namespace cam {
 			{
 				if (serverIndex == server_idx_searched || server_idx_searched == -1)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) getBayerPattern %d to [Server%d]",
 						camera_idx_searched, serverIndex));
-					cameraControlMessage_.genfunc_ = "getBayerPattern";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = camera_idx_searched;
-					cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)bayerPattern;
+					__message.genfunc_ = "getBayerPattern";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_enum[0] = (int)bayerPattern;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 			}
 			wait_for_receive();
@@ -1107,27 +1121,29 @@ namespace cam {
 
 				for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setJPEGQuality %d %f to [Server%d]",
 						this->JPEGQuality, this->sizeRatio, serverIndex));
-					cameraControlMessage_.genfunc_ = "setJPEGQuality";
-					cameraControlMessage_.gendata_.param_func.param_int[0] = this->JPEGQuality;
-					cameraControlMessage_.gendata_.param_func.param_float[0] = this->sizeRatio;
+					__message.genfunc_ = "setJPEGQuality";
+					__message.gendata_.param_func.param_int[0] = this->JPEGQuality;
+					__message.gendata_.param_func.param_float[0] = this->sizeRatio;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 				wait_for_receive();
 
 				for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 				{
-					build_control_message(serverIndex);
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
 					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setCaptureMode %d %d to [Server%d]",
 						(int)captureMode, bufferSize, serverIndex));
-					cameraControlMessage_.genfunc_ = "setCaptureMode";
-					cameraControlMessage_.gendata_.param_func.param_enum[0] = (int)captureMode;
-					cameraControlMessage_.gendata_.param_func.param_int[0] = bufferSize;
+					__message.genfunc_ = "setCaptureMode";
+					__message.gendata_.param_func.param_enum[0] = (int)captureMode;
+					__message.gendata_.param_func.param_int[0] = bufferSize;
 					server_receiving_flag[serverIndex] = 1;
-					emit StartOperation(cameraControlMessage_, serverVec_);
+					emit StartOperation(__message, serverVec_);
 				}
 				wait_for_receive();
 				for (int i = 0; i < serverVec_.size(); i++)
@@ -1184,11 +1200,12 @@ namespace cam {
 		{
 			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
 			{
-				build_control_message(serverIndex);
+				CameraControlMessage __message;
+				build_control_message(serverIndex, __message);
 				SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) startCaptureThreads to [Server%d]", serverIndex));
-				cameraControlMessage_.genfunc_ = "startCaptureThreads";
+				__message.genfunc_ = "startCaptureThreads";
 				server_receiving_flag[serverIndex] = 1;
-				emit StartOperation(cameraControlMessage_, serverVec_);
+				emit StartOperation(__message, serverVec_);
 			}
 			wait_for_receive();
 			for (int i = 0; i < serverVec_.size(); i++)
