@@ -14,6 +14,7 @@ int preview(int argc, char* argv[]) {
 	cameraPtr->setFPS(-1, 20);
 	cameraPtr->setAutoExposure(-1, cam::Status::on);
 	cameraPtr->setAutoExposureLevel(-1, 40);
+	
 	cameraPtr->setAutoWhiteBalance(-1);
 	cameraPtr->makeSetEffective();
 	// set capturing setting
@@ -53,7 +54,8 @@ int record(int argc, char* argv[]) {
 	cameraPtr->startCapture();
 	cameraPtr->setFPS(-1, 12);
 	cameraPtr->setAutoExposure(-1, cam::Status::on);
-	cameraPtr->setAutoExposureLevel(-1, 25);
+	cameraPtr->setAutoExposureLevel(-1, 70);
+	cameraPtr->setAutoExposureLevel(4, 5);
 	cameraPtr->setAutoExposureCompensation(-1, cam::Status::on, 0);
 	cameraPtr->setAutoWhiteBalance(-1);
 	cameraPtr->makeSetEffective();
