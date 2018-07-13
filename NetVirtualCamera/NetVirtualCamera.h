@@ -71,6 +71,10 @@ namespace cam {
 
 		int set_resize_factor(int factor, cam::GenCamImgRatio ratio, int cam_idx);
 
+		int get_sub_index(int global_index, int & server_index, int & camera_index);
+
+		int build_control_message(int server_index);
+
 	public:
 		GenCameraNETVIR();
 		~GenCameraNETVIR();

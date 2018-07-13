@@ -20,9 +20,22 @@
 #include <opencv2/core.hpp>
 #include <opencv2/cudaimgproc.hpp>
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
 #include <direct.h>
+#include <time.h>
+#else
+#include <sys/time.h>
+#include <stdarg.h>
+#include <pthread.h>
+#endif
+
+#ifdef WIN32
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+#define DELTA_EPOCH_IN_MICROSECS 11644473600000000Ui64
+#else
+#define DELTA_EPOCH_IN_MICROSECS 11644473600000000ULL
+#endif
 #endif
 
 
@@ -137,6 +150,93 @@ namespace cam {
 				<< std::endl;
 #endif
 			return 0;
+		}
+
+		struct timezone
+		{
+			int  tz_minuteswest; // minutes W of Greenwich  
+			int  tz_dsttime;     // type of dst correction
+		};
+
+#ifdef WIN32
+		static int gettimeofday(struct timeval *tv, struct timezone *tz)
+		{
+			FILETIME ft;
+			uint64_t tmpres = 0;
+			static int tzflag = 0;
+
+
+			if (tv)
+			{
+#ifdef _WIN32_WCE
+				SYSTEMTIME st;
+				GetSystemTime(&st);
+				SystemTimeToFileTime(&st, &ft);
+#else
+				GetSystemTimeAsFileTime(&ft);
+#endif
+
+
+				tmpres |= ft.dwHighDateTime;
+				tmpres <<= 32;
+				tmpres |= ft.dwLowDateTime;
+
+
+				/*converting file time to unix epoch*/
+				tmpres /= 10;  /*convert into microseconds*/
+				tmpres -= DELTA_EPOCH_IN_MICROSECS;
+				tv->tv_sec = (long)(tmpres / 1000000UL);
+				tv->tv_usec = (long)(tmpres % 1000000UL);
+			}
+
+
+			if (tz) {
+				if (!tzflag) {
+					tzflag++;
+				}
+				tz->tz_minuteswest = _timezone / 60;
+				tz->tz_dsttime = _daylight;
+			}
+
+
+			return 0;
+		}
+#endif
+
+		static int64_t getCurrentTimeMicroSecond()
+		{
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			return tv.tv_sec * (int64_t)1000000 + tv.tv_usec;
+		}
+
+		static std::string getTimeString()
+		{
+			time_t timep;
+			time(&timep);
+			char tmp[64];
+			strftime(tmp, sizeof(tmp), "__%Y_%m_%d_%H_%M_%S__", localtime(&timep));
+			return tmp;
+		}
+
+		static inline std::string format(const char *msg, ...)
+		{
+			std::size_t const STRING_BUFFER(4096);
+			char text[STRING_BUFFER];
+			va_list list;
+
+			if (msg == 0)
+				return std::string();
+
+			va_start(list, msg);
+#		if(GLM_COMPILER & GLM_COMPILER_VC)
+			vsprintf_s(text, STRING_BUFFER, msg, list);
+#		else//
+			vsprintf(text, msg, list);
+#		endif//
+			va_end(list);
+
+			return std::string(text);
 		}
 	};
 
