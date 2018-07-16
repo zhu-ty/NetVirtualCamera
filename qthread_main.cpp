@@ -47,6 +47,8 @@ int record(int argc, char* argv[]) {
 	//	= cam::createCamera(cam::CameraModel::PointGrey_u3);
 	std::shared_ptr<cam::GenCamera> cameraPtr
 		= cam::createCamera(cam::CameraModel::Network);
+	cameraPtr->genSettingInterface(1, 
+		"E:/Project/GigaRenderNetwork/Common/network_camera_driver/ConfigSample/config.new.xml");
 	cameraPtr->init();
 	cam::SysUtil::sleep(1000);
 	// set camera setting
