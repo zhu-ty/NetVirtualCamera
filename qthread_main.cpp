@@ -56,8 +56,6 @@ int record(int argc, char* argv[]) {
 	cameraPtr->startCapture();
 	cameraPtr->setFPS(-1, 12);
 	cameraPtr->setAutoExposure(-1, cam::Status::on);
-	cameraPtr->setAutoExposureLevel(-1, 70);
-	cameraPtr->setAutoExposureLevel(4, 5);
 	cameraPtr->setAutoExposureCompensation(-1, cam::Status::on, 0);
 	cameraPtr->setAutoWhiteBalance(-1);
 	cameraPtr->makeSetEffective();
@@ -66,7 +64,7 @@ int record(int argc, char* argv[]) {
 	cameraPtr->setJPEGQuality(85, 0.5);
 	cameraPtr->getCamInfos(camInfos);
 	cam::SysUtil::sleep(1000);
-	cameraPtr->setCaptureMode(cam::GenCamCaptureMode::Continous, 10);
+	cameraPtr->setCaptureMode(cam::GenCamCaptureMode::Continous, 200);
 	cameraPtr->setCapturePurpose(cam::GenCamCapturePurpose::Recording);
 	cameraPtr->setVerbose(true);
 
