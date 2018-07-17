@@ -1012,9 +1012,9 @@ namespace cam {
 				{
 					CameraControlMessage __message;
 					build_control_message(serverIndex, __message);
-					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoExposureCompensation %d %d to [Server%d]",
+					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) adjustBrightness %d %d to [Server%d]",
 						camera_idx_searched, brightness, serverIndex));
-					__message.genfunc_ = "setAutoExposureCompensation";
+					__message.genfunc_ = "adjustBrightness";
 					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
 					__message.gendata_.param_func.param_int[1] = (int)brightness;
 					server_receiving_flag[serverIndex] = 1;
