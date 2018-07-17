@@ -152,8 +152,14 @@ namespace cam {
 			return 0;
 		}
 
-		struct timezone
-		{
+		/*
+		* Structure used in select() call, taken from the BSD file sys/time.h.
+		*/
+		struct timeval {
+			long    tv_sec;         /* seconds */
+			long    tv_usec;        /* and microseconds */
+		};
+		struct timezone {
 			int  tz_minuteswest; // minutes W of Greenwich  
 			int  tz_dsttime;     // type of dst correction
 		};
