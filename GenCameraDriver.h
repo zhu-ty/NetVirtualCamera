@@ -54,14 +54,14 @@ namespace cam {
 	};
 
 #ifndef WIN32
-#define BLACK_TEXT(x) "\033[30;1m" x "\033[0m"
-#define RED_TEXT(x) "\033[31;1m" x "\033[0m"
-#define GREEN_TEXT(x) "\033[32;1m" x "\033[0m"
-#define YELLOW_TEXT(x) "\033[33;1m" x "\033[0m"
-#define BLUE_TEXT(x) "\033[34;1m" x "\033[0m"
-#define MAGENTA_TEXT(x) "\033[35;1m" x "\033[0m"
-#define CYAN_TEXT(x) "\033[36;1m" x "\033[0m"
-#define WHITE_TEXT(x) "\033[37;1m" x "\033[0m"
+#define BLACK_TEXT(x) "\033[30;1m" << x << "\033[0m"
+#define RED_TEXT(x) "\033[31;1m" << x << "\033[0m"
+#define GREEN_TEXT(x) "\033[32;1m" << x << "\033[0m"
+#define YELLOW_TEXT(x) "\033[33;1m" << x << "\033[0m"
+#define BLUE_TEXT(x) "\033[34;1m" << x << "\033[0m"
+#define MAGENTA_TEXT(x) "\033[35;1m" << x << "\033[0m"
+#define CYAN_TEXT(x) "\033[36;1m" << x << "\033[0m"
+#define WHITE_TEXT(x) "\033[37;1m" << x << "\033[0m"
 #endif
 
 	class SysUtil {
@@ -507,6 +507,14 @@ namespace cam {
 			Status status, float relativeEV) = 0;
 
 		/**
+		@brief set brightness time
+		@param int brightness: input brightness
+		+1: brighten, -1: darken, 0: do nothing
+		@return int
+		*/
+		virtual int adjustBrightness(int camInd, int brightness) = 0;
+
+		/**
 		@brief set exposure time
 		@param int camInd: index of camera (-1 means all the cameras)
 		@param int time: exposure time (in microseconds)
@@ -667,6 +675,21 @@ namespace cam {
 		*/
 		int getCameraInfoListsWithMapping(std::vector<cam::GenCamInfo> & camInfos);
 
+		/*************************************************************/
+		/*                function to capture images                 */
+		/*************************************************************/
+		/**
+		@brief capture one frame
+		@param std::vector<Imagedata> & refImgs: output reference images
+		@param std::vector<Imagedata> & localImgs: output localview images
+		@param std::vector<int> refInds: input reference indices
+		@param std::vector<int> localInds: input local indices
+		@return int
+		*/
+		int captureFrame(std::vector<Imagedata> & refImgs,
+			std::vector<Imagedata> & localImgs,
+			std::vector<int> refInds,
+			std::vector<int> localInds);
 	};
 
 	/**

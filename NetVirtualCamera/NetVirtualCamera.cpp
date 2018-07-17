@@ -991,6 +991,46 @@ namespace cam {
 	}
 
 	/**
+	@brief set brightness time
+	@param int brightness: input brightness
+	+1: brighten, -1: darken, 0: do nothing
+	@return int
+	*/
+	int GenCameraNETVIR::adjustBrightness(int camInd, int brightness) {
+		if (this->isInit == false)
+		{
+			SysUtil::warningOutput("GenCameraNETVIR::setAutoExposureCompensation init first please");
+			return -1;
+		}
+		else
+		{
+			int server_idx_searched, camera_idx_searched;
+			get_sub_index(camInd, server_idx_searched, camera_idx_searched);
+			for (int serverIndex = 0; serverIndex < serverVec_.size(); serverIndex++)
+			{
+				if (serverIndex == server_idx_searched || server_idx_searched == -1)
+				{
+					CameraControlMessage __message;
+					build_control_message(serverIndex, __message);
+					SysUtil::infoOutput(SysUtil::format("[Client ] send  (OpenCameraCommand) setAutoExposureCompensation %d %d to [Server%d]",
+						camera_idx_searched, brightness, serverIndex));
+					__message.genfunc_ = "setAutoExposureCompensation";
+					__message.gendata_.param_func.param_int[0] = camera_idx_searched;
+					__message.gendata_.param_func.param_int[1] = (int)brightness;
+					server_receiving_flag[serverIndex] = 1;
+					emit StartOperation(__message, serverVec_);
+				}
+			}
+			wait_for_receive();
+			for (int i = 0; i < serverVec_.size(); i++)
+				if (data_receive[i].void_func.return_val != 0)
+					return data_receive[i].void_func.return_val;
+			return 0;
+		}
+		return -1;
+	}
+
+	/**
 	@brief set exposure time
 	@param int ind: index of camera (-1 means all the cameras)
 	@param int time: exposure time (in microseconds)

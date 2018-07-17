@@ -251,5 +251,50 @@ namespace cam {
 		}
 		return 0;
 	}
+
+	/*************************************************************/
+	/*                function to capture images                 */
+	/*************************************************************/
+	/**
+	@brief capture one frame
+	@param std::vector<Imagedata> & refImgs: output reference images
+	@param std::vector<Imagedata> & localImgs: output localview images
+	@param std::vector<int> refInds: input reference indices
+	@param std::vector<int> localInds: input local indices
+	@return int
+	*/
+	int GenCamera::captureFrame(std::vector<Imagedata> & refImgs,
+		std::vector<Imagedata> & localImgs,
+		std::vector<int> refInds,
+		std::vector<int> localInds) {
+		size_t camInd;
+		if (captureMode == GenCamCaptureMode::Continous ||
+			captureMode == GenCamCaptureMode::ContinousTrigger) {
+			// get refernce images from buffer
+			for (size_t i = 0; i < refInds.size(); i++) {
+				camInd = refInds[i];
+				int index = (thBufferInds[camInd] - 1 + bufferSize) % bufferSize;
+				refImgs[i] = bufferImgs[index][camInd];
+			}
+			// get local images from buffer
+			for (size_t i = 0; i < localInds.size(); i++) {
+				camInd = localInds[i];
+				int index = (thBufferInds[camInd] - 1 + bufferSize) % bufferSize;
+				localImgs[i] = bufferImgs[index][camInd];
+			}
+			// increase buffer indices for file camera
+			if (this->camModel == cam::CameraModel::File) {
+				for (size_t camInd = 0; camInd < this->cameraNum; camInd++) {
+					thBufferInds[camInd] = (thBufferInds[camInd] + 1) % bufferSize;
+				}
+			}
+		}
+		else if (captureMode == GenCamCaptureMode::Single ||
+			captureMode == GenCamCaptureMode::SingleTrigger) {
+			SysUtil::errorOutput("Single mode is not implemented yet !");
+			exit(-1);
+		}
+		return 0;
+	}
 }
 
