@@ -37,7 +37,7 @@ namespace cam {
 			{
 				// If last prinf() was more than 1 sec ago, printf and reset timer
 				// printf("Main Thread: %f ms/frame\n", 1000.0 / double(nbFrames));
-				printf("Capture  Thread: %.2f frame/s\n", double(nbFrames) / (currentTime - lastTime));
+				//printf("Capture  Thread: %.2f frame/s\n", double(nbFrames) / (currentTime - lastTime));
 				nbFrames = 0;
 				lastTime = currentTime;
 			}
