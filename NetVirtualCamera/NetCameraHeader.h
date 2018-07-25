@@ -17,7 +17,7 @@
 #define CAMERA_COMMAND_DATA_MAX_SIZE  4096*8			///通信命令数据包最大长度
 #define CAMERA_IMAGE_DATA_MAX_SIZE    (4096*4096*4+2048)		///图像数据最大长度
 
-#define MAX_CAMERA_NUM 8
+#define MAX_CAMERA_NUM 10
 #define MAX_PARAM_NUM 10
 #define MAX_PATH_LEN 256
 #define MAX_SN_LEN MAX_PATH_LEN
@@ -175,7 +175,7 @@ public:
 	std::string triggerSingleSaveName_ = "tmp";					//手动保存单张图片的文件名
 	std::vector<std::vector<int>> validFlagVec_;				//对当前服务器下的盒子下的相机操作有效性的校验
 	int32_t imageType_ = 2;										//获取单张图片的类型
-	int32_t imageResizedFactor_=1;								//获取单张图片的缩放因子
+	int64_t imageResizedFactor_=1;								//获取单张图片的缩放因子
 	int32_t imageResizedWidth_ = 0;								//获取单张图片缩放后宽度
 	int32_t imageResizedHeight_ = 0;							//获取单图片缩放后高度
 	float waitTime_ = 0;

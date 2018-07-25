@@ -69,7 +69,7 @@ namespace cam {
 
 		void print_server_vec();
 
-		int set_resize_factor(int factor, cam::GenCamImgRatio ratio, int cam_idx);
+		int set_resize_factor(int64_t factor, cam::GenCamImgRatio ratio, int cam_idx);
 
 		int get_sub_index(int global_index, int & server_index, int & camera_index);
 
