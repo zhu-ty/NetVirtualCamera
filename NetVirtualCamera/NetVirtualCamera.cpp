@@ -69,18 +69,18 @@ namespace cam {
 				cameraControlMessage__.images_jpeg_len.clear();
 				for (int cameraIndex = 0; cameraIndex < cameraControlMessage__.cameraAmount_; cameraIndex++)
 				{
-					if (cameraIndex >= 9)
-					{
-						SysUtil::errorOutput("cameraIndex >= 9, now is:");
-						std::cout << cameraIndex << std::endl;
-						SysUtil::errorOutput("Control Message:");
-						std::cout << cameraControlMessage__.cameraAmount_ << endl;
-						SysUtil::errorOutput("ServerIndex:");
-						std::cout << serverIndex << endl;
-						SysUtil::errorOutput("cameraIndex:");
-						std::cout << cameraIndex << endl;
-						print_server_vec();
-					}
+					//if (cameraIndex >= 9)
+					//{
+					//	SysUtil::errorOutput("cameraIndex >= 9, now is:");
+					//	std::cout << cameraIndex << std::endl;
+					//	SysUtil::errorOutput("Control Message:");
+					//	std::cout << cameraControlMessage__.cameraAmount_ << endl;
+					//	SysUtil::errorOutput("ServerIndex:");
+					//	std::cout << serverIndex << endl;
+					//	SysUtil::errorOutput("cameraIndex:");
+					//	std::cout << cameraIndex << endl;
+					//	print_server_vec();
+					//}
 						
 					cameraControlMessage__.images_jpeg_raw.push_back(
 						bufferImgs[thBufferInds[camInd]][camInd].data);
