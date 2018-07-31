@@ -186,7 +186,7 @@ namespace cam {
 	int GenCameraNETVIR::set_resize_factor(int64_t factor, cam::GenCamImgRatio ratio, int cam_idx)
 	{
 		if (cam_idx > 15)
-			SysUtil::errorOutput("GenCameraNETVIR::set_resize_factor only support up to 8 cameras");
+			SysUtil::errorOutput("GenCameraNETVIR::set_resize_factor only support up to 16 cameras");
 		//骚操作 每4个bit代表一个相机的resize factor
 		factor |= ((int)ratio) << (cam_idx * 4);
 		return factor;

@@ -17,8 +17,8 @@
 #define CAMERA_COMMAND_DATA_MAX_SIZE  4096*8			///通信命令数据包最大长度
 #define CAMERA_IMAGE_DATA_MAX_SIZE    (4096*4096*4+2048)		///图像数据最大长度
 
-#define MAX_CAMERA_NUM 10
-#define MAX_PARAM_NUM 10
+#define MAX_CAMERA_NUM 16
+#define MAX_PARAM_NUM 16
 #define MAX_PATH_LEN 256
 #define MAX_SN_LEN MAX_PATH_LEN
 
