@@ -417,7 +417,7 @@ public:
 	int32_t cameraAmount_ = 2;															///预操作的盒子下的相机总数
 	int32_t cameraIndex_ = 0;															///预操作的盒子下的相机编号
 	int32_t imageType_ = 2;																///图像类型，1:Mono_8Bit,2:Mono_16Bit,3:Color_8Bit,
-	int32_t resizeFactor_ = 0;															///每一位为一个插值等级
+	int64_t resizeFactor_ = 0;															///每一位为一个插值等级
 	int32_t resizedWidth_ = 2048;														///插值图像宽度，该值由请求者指定
 	int32_t resizedHeight_ = 2048;														///插值图像高度，该值由请求者指定
 
