@@ -61,7 +61,22 @@ struct GenCameraControlData
 		int return_val;
 		char str[MAX_PATH_LEN];
 	} str_func;
-
+	GenCameraControlData & operator=(const GenCameraControlData& data)
+	{
+		//memcpy(this, &data, sizeof(GenCameraControlData));
+		this->void_func.return_val = data.void_func.return_val;
+		this->caminfo_func.return_val = data.caminfo_func.return_val;
+		this->param_func.return_val = data.param_func.return_val;
+		this->str_func.return_val = data.str_func.return_val;
+		
+		memcpy(this->caminfo_func.camInfos, data.caminfo_func.camInfos, sizeof(this->caminfo_func.camInfos));
+		memcpy(this->param_func.param_bool, data.param_func.param_bool, sizeof(this->param_func.param_bool));
+		memcpy(this->param_func.param_enum, data.param_func.param_enum, sizeof(this->param_func.param_enum));
+		memcpy(this->param_func.param_int, data.param_func.param_int, sizeof(this->param_func.param_int));
+		memcpy(this->param_func.param_float, data.param_func.param_float, sizeof(this->param_func.param_float));
+		memcpy(this->str_func.str, data.str_func.str, sizeof(this->str_func.str));
+		return *this;
+	}
 };
 
 

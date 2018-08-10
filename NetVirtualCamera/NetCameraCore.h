@@ -30,7 +30,7 @@
 //#using "../NetVirtualCamera/CSharpSocket.dll"
 
 
-#define WAIT_MS_INIT 15000
+#define WAIT_MS_INIT 20000
 
 
 //#include "cuda_runtime.h"

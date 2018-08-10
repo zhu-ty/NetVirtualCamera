@@ -240,9 +240,9 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		//verify if the message is sent to this server
 		CameraControlMessage cameraControlMessage_;
 		cameraControlMessage_ = _cameraControlMessage;
-		Communication_Camera_Command command = _cameraControlMessage.command_;
-		int serverIndex = _cameraControlMessage.serverIndex_;
-		bool operateAllFlag = _cameraControlMessage.operateAllFlag_;
+		Communication_Camera_Command command = cameraControlMessage_.command_;
+		int serverIndex = cameraControlMessage_.serverIndex_;
+		bool operateAllFlag = cameraControlMessage_.operateAllFlag_;
 		switch (command) {
 		case Communication_Camera_Get_Status: {					//get status
 			if (serverVec_[serverIndex].connectedFlag_ == true) {
@@ -260,8 +260,8 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Open_Box: {					//open box
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 				CameraOpenBoxPackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 				dataTmp.boxIndex_ = boxIndex;
@@ -292,10 +292,10 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Open_Camera: {				//open camera
 			//if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 				CameraOpenCameraPackage dataTmp;
-				dataTmp.operationIndex_ = _cameraControlMessage.openCameraOperationIndex_;
+				dataTmp.operationIndex_ = cameraControlMessage_.openCameraOperationIndex_;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 				dataTmp.boxIndex_ = boxIndex;
 				dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_.size();
@@ -314,9 +314,10 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 				memcpy(dataTmp.savePath_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].savePath_.c_str(), sizeof(dataTmp.savePath_));
 				memcpy(dataTmp.saveName_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveName_.c_str(), sizeof(dataTmp.saveName_));
 
-				memcpy(dataTmp.genfunc_c, _cameraControlMessage.genfunc_.c_str(), _cameraControlMessage.genfunc_.size());
-				dataTmp.genfunc_c[_cameraControlMessage.genfunc_.size()] = '\0';
-				memcpy(&dataTmp.gendata_c, &_cameraControlMessage.gendata_, sizeof(GenCameraControlData));
+				memcpy(dataTmp.genfunc_c, cameraControlMessage_.genfunc_.c_str(), cameraControlMessage_.genfunc_.size());
+				dataTmp.genfunc_c[cameraControlMessage_.genfunc_.size()] = '\0';
+				//memcpy(&dataTmp.gendata_c, &cameraControlMessage_.gendata_, sizeof(GenCameraControlData));
+				dataTmp.gendata_c = cameraControlMessage_.gendata_;
 				//memcpy(dataTmp.othersInfo_, serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].othersInfo_.c_str(), sizeof(dataTmp.othersInfo_));
 				sendPackage_.command_ = Communication_Camera_Open_Camera;
 				memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
@@ -377,8 +378,8 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Trigger_Continous: {			//trigger continous
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 				std::string triggerSaveName = serverVec_[serverIndex].boxVec_[boxIndex].cameraVec_[cameraIndex].saveName_;
 				CameraTriggerContinousPackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
@@ -422,9 +423,9 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Trigger_Single: {			//trigger single
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
-				std::string triggerSaveName = _cameraControlMessage.triggerSingleSaveName_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
+				std::string triggerSaveName = cameraControlMessage_.triggerSingleSaveName_;
 				CameraTriggerSinglePackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 				dataTmp.boxIndex_ = boxIndex;
@@ -445,7 +446,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
 						int cameraIndex = j;
-						std::string triggerSaveName = _cameraControlMessage.triggerSingleSaveName_;
+						std::string triggerSaveName = cameraControlMessage_.triggerSingleSaveName_;
 						CameraTriggerSinglePackage dataTmp;
 						dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 						dataTmp.boxIndex_ = boxIndex;
@@ -468,17 +469,17 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		case Communication_Camera_Get_Image: {			//get image
 			formVector_ = _formVector;
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 
 				CameraGetImagePackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxAmount_;
 				dataTmp.boxIndex_ = boxIndex;
 				dataTmp.cameraAmount_ = serverVec_[serverIndex].boxVec_[boxIndex].cameraAmount_;
 				dataTmp.cameraIndex_ = cameraIndex;
-				dataTmp.imageType_ = _cameraControlMessage.imageType_;
+				dataTmp.imageType_ = cameraControlMessage_.imageType_;
 				//dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_ > 0 ? _cameraControlMessage.imageResizedFactor_ : 1;
-				dataTmp.resizeFactor_ = _cameraControlMessage.imageResizedFactor_;
+				dataTmp.resizeFactor_ = cameraControlMessage_.imageResizedFactor_;
 				dataTmp.resizedWidth_ = 0;
 				dataTmp.resizedHeight_ = 0;
 
@@ -589,8 +590,8 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Close_Box: {			//close box
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 				CameraCloseBoxPackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 				dataTmp.boxIndex_ = boxIndex;
@@ -621,8 +622,8 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraCont
 		}
 		case Communication_Camera_Close_Camera: {			//close camera
 			if (!operateAllFlag) {
-				int boxIndex = _cameraControlMessage.boxIndex_;
-				int cameraIndex = _cameraControlMessage.cameraIndex_;
+				int boxIndex = cameraControlMessage_.boxIndex_;
+				int cameraIndex = cameraControlMessage_.cameraIndex_;
 				CameraCloseCameraPackage dataTmp;
 				dataTmp.boxAmount_ = serverVec_[serverIndex].boxVec_.size();
 				dataTmp.boxIndex_ = boxIndex;

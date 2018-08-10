@@ -92,8 +92,11 @@ namespace cam {
 					cameraControlMessage__.imageResizedFactor_ = set_resize_factor(cameraControlMessage__.imageResizedFactor_, this->imgRatios[camInd], cameraIndex);
 					camInd++;
 				}
-				//SysUtil::infoOutput(cv::format("Set Factor:0x%08x", cameraControlMessage__.imageResizedFactor_));
+				SysUtil::infoOutput(cv::format("Set Factor:0x%llx", cameraControlMessage__.imageResizedFactor_));
 				server_receiving_flag[serverIndex] = 1;
+
+				
+
 				emit StartOperation(cameraControlMessage__, serverVec_);
 				
 			}
@@ -183,7 +186,7 @@ namespace cam {
 		}
 	}
 
-	int GenCameraNETVIR::set_resize_factor(int64_t factor, cam::GenCamImgRatio ratio, int cam_idx)
+	int64_t GenCameraNETVIR::set_resize_factor(int64_t factor, cam::GenCamImgRatio ratio, int cam_idx)
 	{
 		if (cam_idx > 15)
 			SysUtil::errorOutput("GenCameraNETVIR::set_resize_factor only support up to 16 cameras");
@@ -981,7 +984,7 @@ namespace cam {
 					emit StartOperation(__message, serverVec_);
 				}
 			}
-			wait_for_receive();
+			wait_for_receive(10.0);
 			for (int i = 0; i < serverVec_.size(); i++)
 				if (data_receive[i].void_func.return_val != 0)
 					return data_receive[i].void_func.return_val;

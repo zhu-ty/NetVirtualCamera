@@ -47,15 +47,15 @@ int record(int argc, char* argv[]) {
 	//	= cam::createCamera(cam::CameraModel::PointGrey_u3);
 	std::shared_ptr<cam::GenCamera> cameraPtr
 		= cam::createCamera(cam::CameraModel::Network);
-	cameraPtr->genSettingInterface(1, 
-		"E:/Project/GigaRenderNetwork/Common/network_camera_driver/ConfigSample/config.new.xml");
+	//cameraPtr->genSettingInterface(1, 
+	//	"E:/Project/GigaRenderNetwork/Common/network_camera_driver/ConfigSample/config.new.xml");
 	cameraPtr->init();
 	cam::SysUtil::sleep(1000);
 	// set camera setting
 	//cam::SysUtil::sleep(5000);
 	cameraPtr->startCapture();
 	cam::SysUtil::sleep(1000);
-	cameraPtr->setFPS(-1, 12);
+	cameraPtr->setFPS(-1, 10);
 	cam::SysUtil::sleep(1000);
 	cameraPtr->setAutoExposure(-1, cam::Status::on);
 	cameraPtr->setAutoExposureCompensation(-1, cam::Status::on, 0);
@@ -66,6 +66,16 @@ int record(int argc, char* argv[]) {
 	cameraPtr->setCamBufferType(cam::GenCamBufferType::JPEG);
 	cameraPtr->setJPEGQuality(85, 0.5);
 	cameraPtr->getCamInfos(camInfos);
+
+	std::vector<cam::GenCamImgRatio> ratios(camInfos.size());
+	for (int i = 0; i < ratios.size(); i++)
+	{
+		ratios[i] = (cam::GenCamImgRatio)(i % 4);
+		printf("%d ", ratios[i]);
+	}
+	printf("\n");
+	cameraPtr->setImageRatios(ratios);
+
 	cam::SysUtil::sleep(1000);
 	cameraPtr->setCaptureMode(cam::GenCamCaptureMode::Continous, 20);
 	cameraPtr->setCapturePurpose(cam::GenCamCapturePurpose::Recording);
@@ -76,6 +86,7 @@ int record(int argc, char* argv[]) {
 	cam::SysUtil::sleep(1000);
 	cameraPtr->startCaptureThreads();
 	// wait for recoding to finish
+	cam::SysUtil::sleep(1000);
 	cameraPtr->waitForRecordFinish();
 	cameraPtr->saveImages("test");
 	//cameraPtr->saveVideos("test");
