@@ -58,8 +58,9 @@ int record(int argc, char* argv[]) {
 	cameraPtr->setFPS(-1, 10);
 	cam::SysUtil::sleep(1000);
 	cameraPtr->setAutoExposure(-1, cam::Status::on);
-	cameraPtr->setAutoExposureCompensation(-1, cam::Status::on, 0);
 	cameraPtr->setAutoWhiteBalance(-1);
+	//cameraPtr->setAutoExposureCompensation(-1, cam::Status::on, 0);
+	
 	cam::SysUtil::sleep(1000);
 	cameraPtr->makeSetEffective();
 	// set capturing setting

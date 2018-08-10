@@ -257,7 +257,7 @@ namespace cam {
 			@param CameraControlMessage & _cameraControlMessage: Message used to control the camera
 			@param std::vector<CameraServerUnitTypeDef> & _serverVec: ServerVectorList
 			*/
-			void StartOperation(CameraControlMessage &_cameraControlMessage,
+			void StartOperation(CameraControlMessage _cameraControlMessage,
 				std::vector<CameraServerUnitTypeDef> &_serverVec);
 			/**
 			@brief Load Config file in child thread
@@ -270,7 +270,7 @@ namespace cam {
 			@brief Network CameraControl Receive (In main thread)
 			@param CameraControlMessage & _cameraControlMessage: Server's respond pack
 			*/
-			void OperationFinished(CameraControlMessage &_cameraControlMessage);
+			void OperationFinished(CameraControlMessage _cameraControlMessage);
 			/**
 			@brief Load Config file finished in child thread
 			@param QString _filePath: File name

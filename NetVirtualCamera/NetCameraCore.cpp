@@ -140,8 +140,10 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 		if (tcpSocket_ != nullptr && tcpSocket_->state() == true)
 		{
 			//tcpSocket_->write((char *)&sendPackage_.command_, sizeof(sendPackage_));
-			if (tcpSocket_->write((unsigned char *)&sendPackage_.command_, sizeof(sendPackage_))) {
+			if (tcpSocket_->write((unsigned char *)&sendPackage_.command_, sizeof(sendPackage_)))
+			{
 				if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_))
+				{
 					//if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
 						///先解析返回的状态
 					if (sendPackage_.command_ == Communication_Camera_Get_Status) {
@@ -225,6 +227,7 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						return receivePackage_.status_;
 					}
+				}
 			}
 			return Communication_Camera_Action_Overtime;
 		}
@@ -233,7 +236,7 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 }
 
 
-void CameraCommunicationThread::StartOperation(CameraControlMessage &_cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector)
+void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector)
 {
 	serverVec_ = _serverVec;
 	if (_cameraControlMessage.serverIndex_<serverVec_.size()&&_cameraControlMessage.serverIndex_ == id_) {
@@ -923,8 +926,9 @@ void CameraCommunication::UpdateLocalParameters(const std::vector<CameraServerUn
 			qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");
 			qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 			qRegisterMetaType<QVector<int>>("QVector<int> &");
-			QObject::connect(this, SIGNAL(SendOperationToServer(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &, QVector<int> &)), tmp, SLOT(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &, QVector<int> &)), Qt::QueuedConnection);
-			QObject::connect(tmp, SIGNAL(OperationFinished(CameraControlMessage &)), this, SLOT(ReceiveOperationFinishedFromServer(CameraControlMessage &)), Qt::QueuedConnection);
+			QObject::connect(this, SIGNAL(SendOperationToServer(CameraControlMessage, std::vector<CameraServerUnitTypeDef> &, QVector<int> &)),
+				tmp, SLOT(StartOperation(CameraControlMessage, std::vector<CameraServerUnitTypeDef> &, QVector<int> &)), Qt::QueuedConnection);
+			QObject::connect(tmp, SIGNAL(OperationFinished(CameraControlMessage)), this, SLOT(ReceiveOperationFinishedFromServer(CameraControlMessage)), Qt::QueuedConnection);
 			threadVec_[threadIndex]->start(QThread::NormalPriority);
 		}
 	}
@@ -937,13 +941,13 @@ void CameraCommunication::UpdateLocalParameters(const std::vector<CameraServerUn
 	}
 }
 
-void CameraCommunication::StartOperation(CameraControlMessage &_cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec)
+void CameraCommunication::StartOperation(CameraControlMessage _cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec)
 {
 	UpdateLocalParameters(_serverVec);
 	emit SendOperationToServer(_cameraControlMessage,_serverVec, formVector);
 }
 
-void CameraCommunication::ReceiveOperationFinishedFromServer(CameraControlMessage &_cameraControlMessage)
+void CameraCommunication::ReceiveOperationFinishedFromServer(CameraControlMessage _cameraControlMessage)
 {
 	emit OperationFinished(_cameraControlMessage);
 }

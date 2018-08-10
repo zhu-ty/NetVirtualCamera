@@ -50,13 +50,13 @@ public:
 	static const int32_t updateTimerInterval = 1000;		//心跳
 	QVector<int> formVector_;      //窗宽窗位表
 signals:
-	void OperationFinished(CameraControlMessage &_cameraControlMessage);
+	void OperationFinished(CameraControlMessage _cameraControlMessage);
 
 public slots:
 	void UpdateStatus(void);												//向全局参数表更新状态参数
 	void SocketStateChanged(void);
 	
-	void StartOperation(CameraControlMessage &_cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector);
+	void StartOperation(CameraControlMessage _cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector);
 
 private:
 	int id_;																//该线程对应的相机服务器id
@@ -93,16 +93,16 @@ public:
 signals:
 	void LoadConfigFileFinished(QString,bool _flag, std::vector<CameraServerUnitTypeDef> &_serverVec);
 	void SaveConfigFileFinished(bool _flag);
-	void SendOperationToServer(CameraControlMessage &_cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector);	//通知各服务器socket
-	void OperationFinished(CameraControlMessage &_cameraControlMessage);														//用于发送给各请求者
+	void SendOperationToServer(CameraControlMessage _cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec, QVector<int> &_formVector);	//通知各服务器socket
+	void OperationFinished(CameraControlMessage _cameraControlMessage);														//用于发送给各请求者
 
 public slots:
 	BaseErrorType LoadConfigFile(QString _file);
 	BaseErrorType SaveConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_serverVec);
 	void StartStopTimer(bool _flag);
 	void TimerTimeout(void);						
-	void StartOperation(CameraControlMessage &_cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec);		//接收各请求者的请求,然后转发给各服务器
-	void ReceiveOperationFinishedFromServer(CameraControlMessage &_cameraControlMessage);											//接收各服务器的完成信号，然后转发给请求者
+	void StartOperation(CameraControlMessage _cameraControlMessage, std::vector<CameraServerUnitTypeDef> &_serverVec);		//接收各请求者的请求,然后转发给各服务器
+	void ReceiveOperationFinishedFromServer(CameraControlMessage _cameraControlMessage);											//接收各服务器的完成信号，然后转发给请求者
 	void Receive8bitForm(QVector<int> _F);
 
 private:

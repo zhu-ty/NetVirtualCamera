@@ -92,10 +92,8 @@ namespace cam {
 					cameraControlMessage__.imageResizedFactor_ = set_resize_factor(cameraControlMessage__.imageResizedFactor_, this->imgRatios[camInd], cameraIndex);
 					camInd++;
 				}
-				SysUtil::infoOutput(cv::format("Set Factor:0x%llx", cameraControlMessage__.imageResizedFactor_));
+				//SysUtil::infoOutput(cv::format("Set Factor:0x%llx", cameraControlMessage__.imageResizedFactor_));
 				server_receiving_flag[serverIndex] = 1;
-
-				
 
 				emit StartOperation(cameraControlMessage__, serverVec_);
 				
@@ -239,15 +237,15 @@ namespace cam {
 		communication_camera->moveToThread(&communication_thread);
 		//communication_camera->StartStopTimer(true);
 		//Qt Connect
-		qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");   //�Զ����ź���ۺ�������
+		qRegisterMetaType<CameraControlMessage>("CameraControlMessage");   //�Զ����ź���ۺ�������
 		qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 		QObject::connect(this,
-			SIGNAL(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
+			SIGNAL(StartOperation(CameraControlMessage, std::vector<CameraServerUnitTypeDef> &)),
 			communication_camera,
-			SLOT(StartOperation(CameraControlMessage &, std::vector<CameraServerUnitTypeDef> &)),
+			SLOT(StartOperation(CameraControlMessage, std::vector<CameraServerUnitTypeDef> &)),
 			Qt::QueuedConnection);
-		QObject::connect(communication_camera, SIGNAL(OperationFinished(CameraControlMessage &)),
-			this, SLOT(OperationFinished(CameraControlMessage &)), Qt::DirectConnection);
+		QObject::connect(communication_camera, SIGNAL(OperationFinished(CameraControlMessage)),
+			this, SLOT(OperationFinished(CameraControlMessage)), Qt::DirectConnection);
 
 		//QObject::connect(this, SIGNAL(LoadConfigFile(QString)),
 		//	communication_camera, SLOT(LoadConfigFile(QString)), Qt::QueuedConnection);
@@ -283,7 +281,7 @@ namespace cam {
 	@brief Network CameraControl Receive (In main thread)
 	@param CameraControlMessage & _cameraControlMessage: Server's respond pack
 	*/
-	void GenCameraNETVIR::OperationFinished(CameraControlMessage &_cameraControlMessage)
+	void GenCameraNETVIR::OperationFinished(CameraControlMessage _cameraControlMessage)
 	{
 		if (_cameraControlMessage.requestorId_ == id_ || _cameraControlMessage.requestorId_ == 0) {
 			//cameraControlMessage_ = _cameraControlMessage;
@@ -338,21 +336,21 @@ namespace cam {
 						std::string atmp = ("[Server" + QString::number(serverIndex, 10) + "] reply (OpenCameraCommand) ").toStdString();
 						atmp = atmp + _cameraControlMessage.genfunc_ + " OK.";
 						SysUtil::infoOutput(atmp);
-						this->isCapture = true;
+						//this->isCapture = true; //TODO: not here!!!
 						break;
 					}
 					case Communication_Camera_Open_Camera_Invalid: {
 						strTmp << "Failed to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
 							<< "! With function"<< _cameraControlMessage.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
-						this->isCapture = false;
+						//this->isCapture = false;
 						break;
 					}
 					case Communication_Camera_Action_Overtime: {
 						strTmp << "Overtime to open Server_" << serverIndex << "-Cam_" << cameraIndex << "-Id_" << cameraId 
 							<< "! With function" << _cameraControlMessage.genfunc_;
 						SysUtil::warningOutput(("[Warning]" + QString::fromStdString(strTmp.str())).toStdString());
-						this->isCapture = false;
+						//this->isCapture = false;
 						break;
 					}
 					}
@@ -673,6 +671,7 @@ namespace cam {
 			for (int i = 0; i < serverVec_.size(); i++)
 				if (data_receive[i].void_func.return_val != 0)
 					return data_receive[i].void_func.return_val;
+			this->isCapture = true;
 			return 0;
 		}
 		return -1;
