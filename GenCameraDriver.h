@@ -21,6 +21,7 @@
 #include <opencv2/cudaimgproc.hpp>
 
 #if defined(_WIN32) || defined(WIN32)
+#define _WINSOCKAPI_ 
 #include <windows.h>
 #include <direct.h>
 #include <time.h>

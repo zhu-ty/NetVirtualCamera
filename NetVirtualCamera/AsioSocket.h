@@ -1,3 +1,5 @@
+#include "NetCameraCore.h"
+#ifndef CSharp
 #ifndef __GIGA_RENDER_ASIO_SOCKET_H__
 #define __GIGA_RENDER_ASIO_SOCKET_H__
 
@@ -28,4 +30,5 @@ public:
 	int read(unsigned char* data, int len);
 };
 
+#endif
 #endif

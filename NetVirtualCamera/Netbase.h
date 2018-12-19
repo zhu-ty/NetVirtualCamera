@@ -161,6 +161,7 @@ BaseErrorType CreatDirectory(const char *_path);
  * @return      :  _errorCode·µ»Ø´íÎó´úÂë
 ************************************************************************************************/
 #ifdef _MSC_VER
+#define _WINSOCKAPI_ 
 #include <windows.h>
 #include <sstream>
 #else

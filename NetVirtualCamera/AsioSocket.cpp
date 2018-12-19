@@ -1,5 +1,7 @@
-#include <thread>
 #include "AsioSocket.h"
+#ifndef CSharp
+#include <thread>
+
 
 
 struct Socketdata {
@@ -81,3 +83,4 @@ bool AsioSocket::abort() {
 	status = false;
 	return true;
 }
+#endif
