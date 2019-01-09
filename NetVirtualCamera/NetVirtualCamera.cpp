@@ -1152,7 +1152,11 @@ namespace cam {
 				// pre-malloc jpeg data
 				for (size_t i = 0; i < this->cameraNum; i++) {
 					// pre-calculate compressed jpeg data size
-					size_t maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * this->sizeRatio);
+					size_t maxLength;
+					if(camInfos[i].sn.substr(0,3) != "RAW")
+						maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * this->sizeRatio);
+					else 
+						maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * 2);
 					for (size_t j = 0; j < bufferSize; j++) {
 						this->bufferImgs[j][i].data = new char[maxLength];
 						this->bufferImgs[j][i].maxLength = maxLength;
