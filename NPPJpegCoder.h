@@ -13,6 +13,7 @@
 #include <nppi_compression_functions.h>
 #include <cuda_runtime.h>
 
+#include <opencv2/cudaimgproc.hpp>
 
 namespace npp {
 	// definition
@@ -72,6 +73,15 @@ namespace npp {
 	void readRestartInterval(const unsigned char *pData, int &nRestartInterval);
 	bool printfNPPinfo(int cudaVerMajor, int cudaVerMinor);
 
+	/**
+	@brief convert NppiBayerGridPosition code to OpenCV color conversion code
+	@param NppiBayerGridPosition bayerPattern: input bayer pattern code
+	@return int: output opencv color conversion code
+	*/
+	int bayerPatternNPP2CVRGB(NppiBayerGridPosition bayerPattern);
+	int bayerPatternNPP2CVBGR(NppiBayerGridPosition bayerPattern); 
+
+
 	class NPPJpegCoder {
 	private:
 		// cfa bayer pattern type
@@ -117,6 +127,7 @@ namespace npp {
 		Npp8u *apSrcImage[3];
 
 		Npp8u* rgb_img_d;
+		cv::cuda::GpuMat rgb_img_mat_d;
 		int step_rgb;
 		int luminPitch;
 		int chromaPitchU;
@@ -124,6 +135,8 @@ namespace npp {
 
 		int nMCUBlocksH = 0;
 		int nMCUBlocksV = 0;
+
+		NppiDCTState *pDCTState;
 
 	public:
 		// white balance color twist
@@ -284,9 +297,21 @@ namespace npp {
 		*/
 		int release();
 
+		/***************************************************************************/
+		/*                             get image size                              */
+		/***************************************************************************/
+		/**
+		@brief function to get image size
+		@return cv::Size: image size this class can encode
+		*/
+		cv::Size getImageSize();
+
+		/***************************************************************************/
+		/*                           encode bayer image                            */
+		/***************************************************************************/
 		/**
 		@brief encode raw image data to jpeg
-		@param unsigned char* bayer_img_d: input bayer image
+		@param unsigned char* bayer_img_d: input bayer image (default step = image width)
 		@param unsigned char* jpegdata: output jpeg data
 		@param size_t* datalength: output data length
 		@param size_t maxlength: max length (bytes) could be copied to in jpeg data
@@ -295,7 +320,37 @@ namespace npp {
 		*/
 		int encode(unsigned char* bayer_img_d, unsigned char* jpegdata, 
 			size_t* datalength, size_t maxlength, cudaStream_t stream);
+		
+		/**
+		@brief encode raw image data to jpeg
+		@param cv::cuda::GpuMat bayer_img_d: input bayer image 
+		@param unsigned char* jpegdata: output jpeg data
+		@param size_t* datalength: output data length
+		@param size_t maxlength: max length (bytes) could be copied to in jpeg data
+		@param cv::cuda::Stream stream: cudastream
+		@return int
+		*/
+		int encode(cv::cuda::GpuMat rgb_img_d, unsigned char* jpegdata, 
+			size_t* datalength, size_t maxlength, cv::cuda::Stream & cvstream);
 
+		/***************************************************************************/
+		/*                       encode debayered image                            */
+		/***************************************************************************/
+		/**
+		@brief encode debayered image data to jpeg (rgb format)
+		@param cv::cuda::GpuMat debayer_img_d: input bayer image
+		@param unsigned char* jpegdata: output jpeg data
+		@param size_t* datalength: output data length
+		@param size_t maxlength: max length (bytes) could be copied to in jpeg data
+		@param cv::cuda::Stream stream: cudastream
+		@return int
+		*/
+		int encode_rgb(cv::cuda::GpuMat debayer_img_d, unsigned char* jpegdata,
+			size_t* datalength, size_t maxlength, cv::cuda::Stream & cvstream);
+
+		/***************************************************************************/
+		/*                     decode jpeg compressed image                        */
+		/***************************************************************************/
 		/**
 		@brief decode jpeg image to raw image data (full)
 		@param unsigned char* jpegdata: input jpeg data
@@ -308,6 +363,17 @@ namespace npp {
 		*/
 		int decode(unsigned char* jpegdata, size_t input_datalength,
 			cv::cuda::GpuMat & outimg, int type = 1);
+
+		/**
+		@brief decode jpeg image to YUV420 data
+		@param unsigned char* jpegdata: input jpeg data
+		@param size_t input_datalength: input jpeg data length
+		@param std::vector<void *> &_gpu_YUV420data: output Y,U,V data vector (gpu pointer)
+		@param std::vector<uint32_t> &steps: output Y,U,V data step (on gpu)
+		@return int
+		*/
+		int decode(unsigned char* jpegdata, size_t input_datalength,
+			std::vector<void *> &_gpu_YUV420data, std::vector<uint32_t> &steps);
 	};
 
 };

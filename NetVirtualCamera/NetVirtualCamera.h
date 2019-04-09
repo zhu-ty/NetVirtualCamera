@@ -91,6 +91,8 @@ namespace cam {
 		*/
 		int genSettingInterface(int value1, std::string value2) override;
 
+		int setSyncType(GenCamSyncType type = GenCamSyncType::Software) override { return -2; }; //TODO!!!!!!
+
 		/**
 		@brief init camera
 		@return int

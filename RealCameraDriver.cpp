@@ -6,13 +6,16 @@ directly
 @date Jan 8, 2018
 */
 
-#include "RealCameraDriver.h"
 #include <numeric>
+#include "RealCameraDriver.h"
+#include <opencv2/core/cuda_stream_accessor.hpp>
 
 namespace cam {
     RealCamera::RealCamera():isCaptureThreadRunning(false),
-		isCompressThreadRunning(false) {}
+		isCompressThreadRunning(false), isCaptureModeSet(false), isCapturedFrameGpuPointer(false), isCapturedFrameDebayered(false){}
     RealCamera::~RealCamera() {}
+
+
 
     /**
 	@brief multi-thread capturing function
@@ -22,11 +25,19 @@ namespace cam {
 	@param int camInd: index of camera
 	*/
 	void RealCamera::capture_thread_raw_(int camInd) {
+		if (this->camModel == cam::CameraModel::Stereo)
+		{
+			SysUtil::errorOutput("RealCamera::capture_thread_raw_ raw image is not supported for Stereo Camera!");
+			return;
+		}
+
 		clock_t begin_time, end_time;
+		clock_t stat_last_time = SysUtil::getCurrentTimeMicroSecond();
+		int stat_frame_count = 0;
 		double time = 1000.0 / static_cast<double>(camInfos[camInd].fps);
 		thStatus[camInd] = 1;
 		for (;;) {
-			begin_time = clock();
+			begin_time = SysUtil::getCurrentTimeMicroSecond();
 			// check status
 			if (thexit == 1)
 				break;
@@ -34,8 +45,9 @@ namespace cam {
 				break;
 			// capture image
 			this->captureFrame(camInd, bufferImgs[thBufferInds[camInd]][camInd]);
-			end_time = clock();
-			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
+			stat_frame_count++;
+			end_time = SysUtil::getCurrentTimeMicroSecond();
+			float waitTime = time - static_cast<double>(end_time - begin_time) / 1000;
 			// increase index
 			if (camPurpose == GenCamCapturePurpose::Streaming)
 				thBufferInds[camInd] = (thBufferInds[camInd] + 1) % bufferSize;
@@ -47,12 +59,21 @@ namespace cam {
 				}
 			}
 			// wait some time
+			
 			if (waitTime > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>(waitTime)));
 			}
 			if (isVerbose) {
 				printf("Camera %d captures one frame, wait %lld milliseconds for next frame ...\n",
 					camInd, static_cast<long long>(waitTime));
+			}
+			float stat_pass_time = static_cast<double>(end_time - stat_last_time) / 1000;
+			if(stat_pass_time > STAT_FPS_OUTPUT_MS && STAT_FPS_OUTPUT_MS > 0)
+			{
+				float stat_fps = (float)stat_frame_count / stat_pass_time * 1000.0f;
+				SysUtil::infoOutput(cv::format("[Capture Raw FPS] CamModel %s , CamInd %d, fps = %f", this->getCamModelString().c_str(), camInd, stat_fps));
+				stat_frame_count = 0;
+				stat_last_time = end_time;
 			}
 		}
 	}
@@ -77,20 +98,28 @@ namespace cam {
 	@param int camInd: index of camera
 	*/
 	void RealCamera::capture_thread_JPEG_(int camInd) {
+		while (this->isStartRecord == false) {
+			SysUtil::sleep(2);
+		}
+
+
 		clock_t begin_time, end_time;
+		clock_t stat_last_time = SysUtil::getCurrentTimeMicroSecond();
+		int stat_frame_count = 0;
 		double time = 1000.0 / static_cast<double>(camInfos[camInd].fps);
 		thStatus[camInd] = 1;
-		cudaStream_t stream;
-		cudaStreamCreate(&stream);
+		cv::cuda::Stream cvstream; 
 		for (;;) {
 			// begin time
-			begin_time = clock();
+			begin_time = SysUtil::getCurrentTimeMicroSecond();
 			// check status
 			if (thexit == 1)
 				break;
 			if (thStatus[camInd] == 0)
 				break;
 			while (thStatus[camInd] == 2) {
+				if (thexit == 1)
+					break;
 				// still in jpeg compression wait for some time
 				std::this_thread::sleep_for(std::chrono::milliseconds(5));
 				if (isVerbose) {
@@ -99,27 +128,59 @@ namespace cam {
 				}
 			}
 			// capture image
-			this->captureFrame(camInd, bufferImgs_singleframe[camInd]);
+			this->captureFrame(camInd, bufferImgs_data_ptr[camInd]);
+			stat_frame_count++;
 			// copy data to GPU
-			cudaMemcpy(this->bufferImgs_cuda[camInd], bufferImgs_singleframe[camInd].data,
-				sizeof(uchar) * camInfos[camInd].width * camInfos[camInd].height,
-				cudaMemcpyHostToDevice);
-			//cudaStreamSynchronize(stream);
+			//cudaMemcpy(this->bufferImgs_cuda[camInd], bufferImgs_singleframe[camInd].data,
+			//	sizeof(uchar) * camInfos[camInd].width * camInfos[camInd].height,
+			//	cudaMemcpyHostToDevice);
+
+			if (this->isCapturedFrameGpuPointer == false)
+			{
+				this->bufferImgs_host[camInd].data = reinterpret_cast<uchar*>(bufferImgs_data_ptr[camInd].data);
+				this->bufferImgs_cuda[camInd].upload(this->bufferImgs_host[camInd]
+					, std::ref(cvstream));
+				cvstream.waitForCompletion();
+			}
+			else if(this->isCapturedFrameDebayered == false)
+			{
+				this->bufferImgs_cuda[camInd].data = reinterpret_cast<uchar*>(bufferImgs_data_ptr[camInd].data);
+			}
+			else if(bufferImgs_data_ptr[camInd].isJpegCompressd == false)
+			{
+				this->dabayerImgs_cuda[camInd].data = reinterpret_cast<uchar*>(bufferImgs_data_ptr[camInd].data);
+			}
+
+
+
 			// end time
-			end_time = clock();
-			float waitTime = time - static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
+			end_time = SysUtil::getCurrentTimeMicroSecond();
+			float waitTime = time - static_cast<double>(end_time - begin_time) / 1000;
 			// set status to 2, wait for compress
+			if (thexit == 1)
+				break;
 			thStatus[camInd] = 2;
 			// wait for some time
 			if (isVerbose) {
 				printf("Camera %d captures one frame, wait %lld milliseconds for next frame ...\n",
 					camInd, static_cast<long long>(waitTime));
 			}
+			float stat_pass_time = static_cast<double>(end_time - stat_last_time) / 1000;
+			//SysUtil::infoOutput(cv::format("stat_pass_time = %f", stat_pass_time));
+			if(stat_pass_time > STAT_FPS_OUTPUT_MS && STAT_FPS_OUTPUT_MS > 0)
+			{
+				float stat_fps = (float)stat_frame_count / stat_pass_time * 1000.0f;
+				SysUtil::infoOutput(cv::format("[Capture JpegFPS] CamModel %s , CamInd %d, fps = %f", this->getCamModelString().c_str(), camInd, stat_fps));
+				stat_frame_count = 0;
+				stat_last_time = end_time;
+			}
+			//SysUtil::infoOutput(cv::format("wait time = %d", static_cast<int>(waitTime)));
 			if (waitTime > 0) {
-				SysUtil::sleep(waitTime);
+				//SysUtil::infoOutput(cv::format("wait time = %d", static_cast<int>(waitTime)));
+				SysUtil::sleep(static_cast<int>(waitTime));
 			}
 		}
-		cudaStreamDestroy(stream);
+		//cudaStreamDestroy(stream);
 		char info[256];
 		sprintf(info, "Capturing thread for camera %02d finish, exit successfully !", camInd);
 		SysUtil::infoOutput(info);
@@ -134,40 +195,127 @@ namespace cam {
 	*/
 	void RealCamera::compress_thread_JPEG_() {
 		clock_t begin_time, end_time;
-		cudaStream_t stream;
-		cudaStreamCreate(&stream);
+		clock_t stat_last_time = SysUtil::getCurrentTimeMicroSecond();
+		int stat_frame_count = 0;
+		cv::cuda::Stream stream;
 		bool hasFrame;
+		std::vector<bool> mul_mat_waring_flag(this->cameraNum, true);
 		for (;;) {
 			hasFrame = false;
 			// check if threads are need to exit
 			int sum = std::accumulate(thBufferInds.begin(), thBufferInds.end(), 0);
+
+			//SysUtil::infoOutput(cv::format("[OUTSIDE]thBufferInds[0] : %d, sum : %d", thBufferInds[0], sum));
+
 			if (thexit == 1)
 				break;
 			if (sum == bufferSize * this->cameraNum)
 				break;
 			// compress images
-			for (size_t camInd = 0; camInd < this->cameraNum; camInd ++) {
+			for (size_t camInd = 0; camInd < this->cameraNum; camInd++) {
 				// check if all the images are captured
-				if (thStatus[camInd] != 2 || thBufferInds[camInd] == bufferSize)
+				if (thStatus[camInd] != 2 || thBufferInds[camInd] == bufferSize) {
+					// if no image is compressed in this for loop, wait 5ms
+					if (camInd == this->cameraNum - 1) {
+						if (hasFrame == false) {
+							SysUtil::sleep(10);
+						}
+						else {
+							hasFrame = false;
+						}
+					}
 					continue;
+				}
 				else hasFrame = true;
+
+				//SysUtil::infoOutput(cv::format("[INSIDE] thBufferInds[0] : %d, sum : %d", thBufferInds[0], sum));
+
+				if (thexit == 1)
+					break;
 				// begin time
-				begin_time = clock();
+				begin_time = SysUtil::getCurrentTimeMicroSecond();
+
+
+
+				int ratioInd = static_cast<int>(imgRatios[camInd]);
+				// debayer
+				if (this->isCapturedFrameDebayered == false)
+				{
+					//brightness adjustment for lens here! (Only valid in JPEG)
+					if (camInd < this->brightness_cuda.size())
+					{
+						if (this->bufferImgs_cuda[camInd].size() == this->brightness_cuda[camInd].size())
+						{
+							cv::cuda::GpuMat tmp, tmp2;
+							this->bufferImgs_cuda[camInd].convertTo(tmp, CV_32F);
+							cv::cuda::multiply(tmp, this->brightness_cuda[camInd], tmp2);
+							tmp2.convertTo(this->bufferImgs_cuda[camInd], CV_8U);
+						}
+						else if (mul_mat_waring_flag[camInd])
+						{
+							SysUtil::warningOutput("image size does not match adjustment mat size, ignore.");
+							mul_mat_waring_flag[camInd] = false;
+						}
+					}
+						//this->bufferImgs_cuda[camInd] = this->bufferImgs_cuda[camInd].
+
+					cv::cuda::demosaicing(this->bufferImgs_cuda[camInd], this->dabayerImgs_cuda[camInd],
+						npp::bayerPatternNPP2CVRGB(static_cast<NppiBayerGridPosition>(
+							static_cast<int>(camInfos[camInd].bayerPattern))), -1, stream);
+				}
+				//else
+				//{
+				//	this->dabayerImgs_cuda[camInd] = this->bufferImgs_cuda[camInd];
+				//}
+				// resize
+				if (ratioInd != 0 && bufferImgs_data_ptr[camInd].isJpegCompressd == false) {
+					cv::cuda::resize(this->dabayerImgs_cuda[camInd], this->resizedDebayerImgs_cuda[camInd][ratioInd],//this->dabayerImgs_cuda[camInd],
+						coders[camInd][ratioInd].getImageSize(), cv::INTER_LINEAR);
+				}
 				// compress
-				coders[camInd].encode(this->bufferImgs_cuda[camInd],
-					reinterpret_cast<uchar*>(bufferImgs[thBufferInds[camInd]][camInd].data),
-					&bufferImgs[thBufferInds[camInd]][camInd].length,
-					bufferImgs[thBufferInds[camInd]][camInd].maxLength,
-					stream);
-				cudaStreamSynchronize(stream);
+
+				//cv::Mat tmp;
+				//dabayerImgs_cuda[camInd].download(tmp);
+
+				if (bufferImgs_data_ptr[camInd].isJpegCompressd == false)
+				{
+					coders[camInd][ratioInd].encode_rgb(
+						((ratioInd == 0) ? this->dabayerImgs_cuda[camInd] : this->resizedDebayerImgs_cuda[camInd][ratioInd]),
+						reinterpret_cast<uchar*>(bufferImgs[thBufferInds[camInd]][camInd].data),
+						&bufferImgs[thBufferInds[camInd]][camInd].length,
+						bufferImgs[thBufferInds[camInd]][camInd].maxLength,
+						stream);
+					bufferImgs[thBufferInds[camInd]][camInd].ratio = static_cast<cam::GenCamImgRatio>(ratioInd);
+					//cudaStreamSynchronize(stream);
+					stream.waitForCompletion();
+				}
+				else
+				{
+					bufferImgs[thBufferInds[camInd]][camInd].length = bufferImgs_data_ptr[camInd].length;
+					memcpy(bufferImgs[thBufferInds[camInd]][camInd].data, bufferImgs_data_ptr[camInd].data, bufferImgs_data_ptr[camInd].length);
+					bufferImgs[thBufferInds[camInd]][camInd].ratio = cam::GenCamImgRatio::Full;
+				}
+
+
+
+
+				stat_frame_count++;
 				// end time
-				end_time = clock();
+				end_time = SysUtil::getCurrentTimeMicroSecond();
 				if (isVerbose) {
-					float costTime = static_cast<double>(end_time - begin_time) / CLOCKS_PER_SEC * 1000;
+					float costTime = static_cast<double>(end_time - begin_time) / 1000;
 					char info[256];
-					sprintf(info, "Camera %d compress one frame, buffer to index %d, cost %f miliseconds ...", camInd, 
+					sprintf(info, "Camera %d compress one frame, buffer to index %d, cost %f miliseconds ...", camInd,
 						thBufferInds[camInd], costTime);
 					SysUtil::infoOutput(info);
+				}
+				float stat_pass_time = static_cast<double>(end_time - stat_last_time) / 1000;
+				if(stat_pass_time > STAT_FPS_OUTPUT_MS && STAT_FPS_OUTPUT_MS > 0)
+				{
+					float stat_fps = (float)stat_frame_count / stat_pass_time * 1000.0f;
+					SysUtil::infoOutput(cv::format("[CompressJpegFPS] CamModel %s , fps = %f (With total %d cameras)", this->getCamModelString().c_str(), stat_fps, this->cameraNum));
+					stat_frame_count = 0;
+					stat_last_time = end_time;
 				}
 				// increase index
 				if (camPurpose == GenCamCapturePurpose::Streaming)
@@ -180,18 +328,20 @@ namespace cam {
 					}
 				}
 				// set thread status to 1
+				if (thexit == 1)
+					break;
 				thStatus[camInd] = 1;
-				// if no image is compressed in this for loop, wait 5ms
-				if (camInd == this->cameraNum - 1) {
-					if (hasFrame == false) {
-						SysUtil::sleep(5);
-					}
-					else
-						hasFrame = true;
-				}
+				//// if no image is compressed in this for loop, wait 5ms
+				//if (camInd == this->cameraNum - 1) {
+				//	if (hasFrame == false) {
+				//		SysUtil::sleep(5);
+				//	}
+				//	else
+				//		hasFrame = true;
+				//}
 			}
 		}
-		cudaStreamDestroy(stream);
+		thexit = 1; //hack there is a problem 
 		SysUtil::infoOutput("JPEG compress thread exit successfully !");
 	}
 
@@ -203,6 +353,10 @@ namespace cam {
 	*/
 	int RealCamera::setCaptureMode(GenCamCaptureMode captureMode,
 		int bufferSize) {
+		if (isCaptureModeSet == true) {
+			SysUtil::warningOutput("Capture mode is already set! Please do not set twice!");
+			return 0;
+		}
 		// get camera info
 		this->getCamInfos(camInfos);
 		// init capture buffer
@@ -241,7 +395,11 @@ namespace cam {
 				// pre-malloc jpeg data
 				for (size_t i = 0; i < this->cameraNum; i++) {
 					// pre-calculate compressed jpeg data size
-					size_t maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * sizeRatio);
+					size_t maxLength;
+					if (this->camModel == cam::CameraModel::Stereo && i >= this->cameraNum / 2)
+						maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * 2);
+					else
+						maxLength = static_cast<size_t>(camInfos[i].width * camInfos[i].height * this->sizeRatio);
 					for (size_t j = 0; j < bufferSize; j++) {
 						this->bufferImgs[j][i].data = new char[maxLength];
 						this->bufferImgs[j][i].maxLength = maxLength;
@@ -250,22 +408,37 @@ namespace cam {
 				}
 				// pre-malloc cuda memory for debayer and jpeg compression
 				this->bufferImgs_cuda.resize(this->cameraNum);
-				this->bufferImgs_singleframe.resize(this->cameraNum);
+				this->dabayerImgs_cuda.resize(this->cameraNum);
+				this->bufferImgs_host.resize(this->cameraNum);
+				this->bufferImgs_data_ptr.resize(this->cameraNum);
 				for (size_t i = 0; i < this->cameraNum; i++) {
-					cudaMalloc(&this->bufferImgs_cuda[i], sizeof(uchar)
-						* camInfos[i].width * camInfos[i].height);
+					//cudaMalloc(&this->bufferImgs_cuda[i], sizeof(uchar)
+					//	* camInfos[i].width * camInfos[i].height);
+					this->bufferImgs_cuda[i].create(camInfos[i].height, camInfos[i].width, CV_8U);
+					this->dabayerImgs_cuda[i].create(camInfos[i].height, camInfos[i].width, CV_8UC3);
 					size_t length = sizeof(uchar) * camInfos[i].width * camInfos[i].height;
-					this->bufferImgs_singleframe[i].data = new char[length];
-					this->bufferImgs_singleframe[i].length = length;
-					this->bufferImgs_singleframe[i].maxLength = length;
+					this->bufferImgs_data_ptr[i].data = new char[length];
+					this->bufferImgs_data_ptr[i].length = length;
+					this->bufferImgs_data_ptr[i].maxLength = length;
+					this->bufferImgs_host[i] = cv::Mat(camInfos[i].height, camInfos[i].width, CV_8U, 
+						reinterpret_cast<uchar*>(this->bufferImgs_data_ptr[i].data));
 				}
 				// init NPP jpeg coder	
 				this->coders.resize(this->cameraNum);
+				this->resizedDebayerImgs_cuda.resize(this->cameraNum);
 				for (size_t i = 0; i < this->cameraNum; i++) {
-					coders[i].init(camInfos[i].width, camInfos[i].height, JPEGQuality);
-					coders[i].setCfaBayerType(static_cast<int>(camInfos[i].bayerPattern));
-					coders[i].setWBRawType(camInfos[i].isWBRaw);
-					coders[i].setWhiteBalanceGain(camInfos[i].redGain, camInfos[i].greenGain, camInfos[i].blueGain);
+					this->coders[i].resize(4);
+					this->resizedDebayerImgs_cuda[i].resize(4);
+					for (size_t j = 0; j < 4; j++) {
+						cv::Size size = cam::GenCamera::makeDoubleSize(cv::Size(camInfos[i].width, camInfos[i].height),
+							static_cast<cam::GenCamImgRatio>(j));
+						coders[i][j].init(size.width, size.height, JPEGQuality);
+						coders[i][j].setCfaBayerType(static_cast<int>(camInfos[i].bayerPattern));
+						coders[i][j].setWBRawType(camInfos[i].isWBRaw);
+						coders[i][j].setWhiteBalanceGain(camInfos[i].redGain, camInfos[i].greenGain, camInfos[i].blueGain);
+
+						this->resizedDebayerImgs_cuda[i][j].create(size.height, size.width, CV_8UC3);
+					}
 				}
 			}
 		}
@@ -274,6 +447,7 @@ namespace cam {
 			SysUtil::errorOutput("Single mode is not implemented yet !");
 			exit(-1);
 		}
+		this->isCaptureModeSet = true;
 		return 0;
 	}
 
@@ -320,6 +494,10 @@ namespace cam {
 	@return int
 	*/
 	int RealCamera::startCaptureThreads() {
+		if (isCaptureThreadRunning == true) {
+			SysUtil::warningOutput("Capturing/compression thread is already running! Please do not start twice!");
+			return 0;
+		}
 		if (captureMode == cam::GenCamCaptureMode::Continous ||
 			captureMode == cam::GenCamCaptureMode::ContinousTrigger) {
 			// prepare thread buffers
@@ -373,6 +551,7 @@ namespace cam {
 			thStatus[i] = 0;
 		}
 		thexit = 1;
+		SysUtil::sleep(200);
 		// make sure all the threads have exited
 		if (this->camPurpose == cam::GenCamCapturePurpose::Streaming) {
 			if (isCompressThreadRunning == true) {
@@ -383,6 +562,8 @@ namespace cam {
 			}
 			if (isCaptureThreadRunning == true) {
 				for (size_t i = 0; i < this->cameraNum; i++) {
+					sprintf(info, "Try to stop capturing thread %d ...", i);
+					SysUtil::infoOutput(std::string(info));
 					ths[i].join();
 					sprintf(info, "Capturing thread %d exit successfully !", i);
 					SysUtil::infoOutput(std::string(info));
@@ -393,16 +574,43 @@ namespace cam {
 		// release memory
 		if (this->bufferType == GenCamBufferType::JPEG) {
 			for (size_t i = 0; i < this->cameraNum; i++) {
-				cudaFree(this->bufferImgs_cuda[i]);
-				delete[] this->bufferImgs_singleframe[i].data;
-				coders[i].release();
+				this->bufferImgs_cuda[i].release();
+				//delete[] this->bufferImgs_data_ptr[i].data;
+				delete[] this->bufferImgs_host[i].data;
+				for (size_t j = 0; j < 4; j++) {
+					coders[i][j].release();
+				}
 				for (size_t j = 0; j < this->cameraNum; j++) {
-					delete bufferImgs[j][i].data;
+					delete[] bufferImgs[j][i].data;
 					bufferImgs[j][i].maxLength = 0;
 				}
 			}
 		}
+		this->isCaptureModeSet = false;
 		SysUtil::infoOutput("Real camera driver released successfully !");
+		return 0;
+	}
+
+	/*************************************************************/
+	/*            function to update images in buffer            */
+	/*************************************************************/
+	/**
+	@brief buffer next frame
+	@return int
+	*/
+	int RealCamera::bufferNextFrame() {
+		SysUtil::warningOutput("Function bufferNextFrame only valid for"\
+			"FileCamera with capturing purpose FileCameraRecording.");
+		return 0;
+	}
+
+	/**
+	@brief buffer next frame
+	@return int
+	*/
+	int RealCamera::reBufferFileCamera() {
+		SysUtil::warningOutput("Function reBufferFileCamera only valid for"\
+			"FileCamera with capturing purpose FileCameraRecording.");
 		return 0;
 	}
 

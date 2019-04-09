@@ -17,6 +17,7 @@
 			
 			
 // opencv
+#include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/cudaimgproc.hpp>
 
@@ -30,6 +31,9 @@
 #include <stdarg.h>
 #include <pthread.h>
 #endif
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 #ifdef WIN32
 #if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
@@ -37,6 +41,10 @@
 #else
 #define DELTA_EPOCH_IN_MICROSECS 11644473600000000ULL
 #endif
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #endif
 
 
@@ -74,9 +82,11 @@ namespace cam {
 #ifdef WIN32
 			_mkdir(dir);
 #else
-			char command[COMMAND_STRING_LENGTH];
-			sprintf(command, "mkdir %s", dir);
-			system(command);
+			// char command[256] = {0};
+			// sprintf(command, "mkdir -pv %s", dir);
+			// printf("PRINTF:: %s\n", command);
+			infoOutput("Makring dir :" + std::string(dir));
+			printf("MKDIR RETURN:: %d\n",::mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH));
 #endif
 			return 0;
 		}
@@ -123,7 +133,7 @@ namespace cam {
 			std::cerr << "WARNING: " << info.c_str() << std::endl;
 			SysUtil::setConsoleColor(ConsoleColor::white);
 #else
-			std::cerr << YELLOW_TEXT("ERROR: ") << RED_TEXT(info.c_str())
+			std::cerr << YELLOW_TEXT("WARNING: ") << YELLOW_TEXT(info.c_str())
 				<< std::endl;
 #endif
 			return 0;
@@ -135,7 +145,7 @@ namespace cam {
 			std::cerr << "INFO: " << info.c_str() << std::endl;
 			SysUtil::setConsoleColor(ConsoleColor::white);
 #else
-			std::cerr << GREEN_TEXT("ERROR: ") << RED_TEXT(info.c_str())
+			std::cerr << GREEN_TEXT("INFO: ") << GREEN_TEXT(info.c_str())
 				<< std::endl;
 #endif
 			return 0;
@@ -147,7 +157,7 @@ namespace cam {
 			std::cerr << "DEBUG INFO: " << info.c_str() << std::endl;
 			SysUtil::setConsoleColor(ConsoleColor::white);
 #else
-			std::cerr << MAGENTA_TEXT("ERROR: ") << RED_TEXT(info.c_str())
+			std::cerr << MAGENTA_TEXT("DEBUG INFO: ") << MAGENTA_TEXT(info.c_str())
 				<< std::endl;
 #endif
 			return 0;
@@ -217,6 +227,16 @@ namespace cam {
 			return tv.tv_sec * (int64_t)1000000 + tv.tv_usec;
 		}
 
+		static inline bool existFile(const std::string& name) {
+			if (FILE *file = fopen(name.c_str(), "r")) {
+				fclose(file);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
 		static std::string getTimeString()
 		{
 			time_t timep;
@@ -224,6 +244,18 @@ namespace cam {
 			char tmp[64];
 			strftime(tmp, sizeof(tmp), "__%Y_%m_%d_%H_%M_%S__", localtime(&timep));
 			return tmp;
+		}
+
+		static char singletolower(char in) {
+			if (in <= 'Z' && in >= 'A')
+				return in - ('Z' - 'z');
+			return in;
+		}
+
+		static inline std::string toLower(std::string in)
+		{
+			std::transform(in.begin(), in.end(), in.begin(), singletolower); //Better than ::tolower() when work with UTF-8
+			return in;
 		}
 
 		static inline std::string format(const char *msg, ...)
@@ -256,7 +288,8 @@ namespace cam {
 		XIMEA_xiC = 0,
 		PointGrey_u3 = 1,
 		Network = 2,
-		File = 3
+		File = 3,
+		Stereo = 4
 	};
 
 	/**
@@ -287,35 +320,45 @@ namespace cam {
 		// true: raw data is after white balance
 		// false: raw data is before white balance
 		bool isWBRaw;
+
+		bool operator==(const GenCamInfo &another)
+		{
+			return this->sn.compare(another.sn) == 0;
+		}
+		bool operator==(const std::string &another)
+		{
+			return this->sn.compare(another) == 0;
+		}
 	};
 
 	/**
 	@brief capture mode 
 	*/
 	enum class GenCamCaptureMode {
-		Single, // capture one by one without buffer
-		Continous, // capture and buffer images
-		SingleTrigger,
-		ContinousTrigger
+		Single = 0, // capture one by one without buffer
+		Continous = 1, // capture and buffer images
+		SingleTrigger = 2,
+		ContinousTrigger = 3
 	};
 
 	/**
 	@brief capture purpose
 	*/
 	enum class GenCamCapturePurpose {
-		Streaming, // capture images to buffers circularly  
-		Recording // capture images to fill the buffer once
+		Streaming = 0, // capture images to buffers circularly  
+		Recording = 1, // capture images to fill the buffer once
+		FileCameraRecording = 2
 	};
 
 	/**
 	@brief buffer type
 	*/
 	enum class GenCamBufferType {
-		Raw,  // save 8-bit raw images in buffer
-		JPEG, // save jpeg compressed images in buffer
+		Raw = 0,  // save 8-bit raw images in buffer
+		JPEG = 1, // save jpeg compressed images in buffer
 			  // usually need as power GPU to compress the raw images
-		RGB24,   // save demosaiced 3 channel RGB images in buffer 
-		Raw16 // save 16-bit raw images in buffer
+		RGB24 = 2,   // save demosaiced 3 channel RGB images in buffer 
+		Raw16 = 3 // save 16-bit raw images in buffer
 	};
 
 	/**
@@ -328,6 +371,13 @@ namespace cam {
 		Octopus = 3 //one-eighth
 	};
 
+	/**
+	@brief camera sync type
+	*/
+	enum class GenCamSyncType {
+		Software = 0,
+		Hardware = 1
+	};
 	
 	/**
 	@brief class to save JPEG data
@@ -339,7 +389,9 @@ namespace cam {
 		size_t maxLength; // max malloced memory size
 		size_t length; // jpeg data length
 
-		Imagedata() : data(NULL), ratio(GenCamImgRatio::Full) {}
+		bool isJpegCompressd;
+
+		Imagedata() : isJpegCompressd(false), data(NULL), ratio(GenCamImgRatio::Full), length(0) {}
 		~Imagedata() {}
 
 		/**
@@ -351,6 +403,8 @@ namespace cam {
 			out.type = this->type;
 			out.length = this->length;
 			out.maxLength = this->maxLength;
+			out.ratio = this->ratio;
+			out.isJpegCompressd = this->isJpegCompressd;
 			// malloc memory
 			out.data = new char[out.maxLength];
 			memcpy(out.data, this->data, out.length);
@@ -387,6 +441,9 @@ namespace cam {
 		int bufferSize;
 		size_t cameraNum;
 
+		// brightness adjustment for each image (pre-processing)
+        std::vector<cv::cuda::GpuMat> brightness_cuda;
+
 		// capture model
 		GenCamCaptureMode captureMode;
 
@@ -404,7 +461,8 @@ namespace cam {
 		std::vector<GenCamImgRatio> imgRatios;
 
 	public:
-
+		// variable used to start capturing thread
+		int isStartRecord;
 	protected:
 
 	public:
@@ -428,6 +486,12 @@ namespace cam {
 		@return int
 		*/
 		virtual int init() = 0;
+
+		/**
+		@brief set camera sync type
+		@return int
+		*/
+		virtual int setSyncType(GenCamSyncType type = GenCamSyncType::Software) = 0;
 
 		/**
 		@brief let cameras start capturing images
@@ -629,8 +693,15 @@ namespace cam {
 		*/
 		int saveVideos(std::string dir);
 
+		/**
+		@brief save captured videos to dir GpuVersion
+		@param std::string dir: input dir to save videos
+		@return int
+		*/
+		int saveVideosGpu(std::string dir);
+
 		/*************************************************************/
-		/*   function to set jepg scale ratio for capture function   */
+		/*   function to set jpeg scale ratio for capture function   */
 		/*************************************************************/
 		/**
 		@brief set scale ratio vector of capture function
@@ -649,6 +720,8 @@ namespace cam {
 
 		/*************************************************************/
 		/*    function to set mapping vector of capture function     */
+		/*                and function to capture images             */
+		/*         old function will be deprecated in the future     */
 		/*************************************************************/
 		/**
 		@brief set mapping vector of capture function
@@ -667,7 +740,7 @@ namespace cam {
 		int captureFrame(std::vector<Imagedata> & imgs);
 
 		/**
-		@brief capture one frame with Mapping
+		@brief capture one frame with mapping
 		@param std::vector<Imagedata> & imgs: output captured images
 		if in single mode, memory of image mats should be malloced
 		before using this function
@@ -693,19 +766,29 @@ namespace cam {
 		@param std::vector<int> localInds: input local indices
 		@return int
 		*/
-		int captureFrame(std::vector<Imagedata> & refImgs,
+		int captureFrame(std::vector<Imagedata> & refImgs, 
 			std::vector<Imagedata> & localImgs,
 			std::vector<int> refInds,
 			std::vector<int> localInds);
+
+		int setBrightnessAdjustment(std::vector<cv::cuda::GpuMat> adjustment);
+
+		/**
+		@brief get camera model string
+		@return std::string
+		*/
+		std::string getCamModelString();
+
 	};
 
 	/**
 	@breif function to init camera array
 	@return 
 	*/
-	std::shared_ptr<GenCamera> createCamera(CameraModel camModel);
+	std::shared_ptr<GenCamera> createCamera(CameraModel camModel,
+		std::string dir = "");
 };
 
-//#pragma managed(pop)
+
 
 #endif
