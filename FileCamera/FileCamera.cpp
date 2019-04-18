@@ -165,78 +165,92 @@ namespace cam {
 			}
 		}
 		// get video start frame index
-		for (size_t i = 0; i < this->cameraNum; i++) {
-			SysUtil::infoOutput("Buffer video " + filenames[i]);
-			std::string fileExtension = videonames[i].substr(videonames[i].find_last_of(".") + 1);
-			if (fileExtension.compare("avi") == 0 || fileExtension.compare("mp4") == 0) {
-				readers[i].open(videonames[i]);
-				if (hasSyncFile == false) {
-					readers[i].set(cv::CAP_PROP_POS_FRAMES, startFrameInd + frameshifts[i]);
-					SysUtil::infoOutput(cv::format("Video %s, start buffering from index %d ...",
-						videonames[i].c_str(), startFrameInd + frameshifts[i]));
+		std::vector<std::thread> buffering_threads;
+		for (size_t i = 0; i < this->cameraNum; i++) 
+		{
+			buffering_threads.push_back(std::thread(&GenCameraFile::bufferSingleCamera, this, i));
+		}
+		for (size_t i = 0; i < this->cameraNum; i++)
+		{
+			buffering_threads[i].join();
+		}
+		return 0;
+	}
+
+	int GenCameraFile::bufferSingleCamera(int camInd)
+	{
+		int i = camInd;
+		SysUtil::infoOutput("Buffer video " + filenames[i]);
+		std::string fileExtension = videonames[i].substr(videonames[i].find_last_of(".") + 1);
+		if (fileExtension.compare("avi") == 0 || fileExtension.compare("mp4") == 0) {
+			readers[i].open(videonames[i]);
+			if (hasSyncFile == false) {
+				readers[i].set(cv::CAP_PROP_POS_FRAMES, startFrameInd + frameshifts[i]);
+				SysUtil::infoOutput(cv::format("Video %s, start buffering from index %d ...",
+					videonames[i].c_str(), startFrameInd + frameshifts[i]));
+			}
+			else {
+				readers[i].set(cv::CAP_PROP_POS_FRAMES, frameInds[i][syncInd]);
+				SysUtil::infoOutput(cv::format("Video %s, start buffering from index %d ...",
+					videonames[i].c_str(), frameInds[i][syncInd]));
+			}
+			cv::Mat img, smallImg, bayerImg;
+			for (size_t j = 0; j < bufferSize; j++) {
+				if (hasSyncFile == false || j == 0) {
+					readers[i] >> img;
 				}
 				else {
-					readers[i].set(cv::CAP_PROP_POS_FRAMES, frameInds[i][syncInd]);
-					SysUtil::infoOutput(cv::format("Video %s, start buffering from index %d ...",
-						videonames[i].c_str(), frameInds[i][syncInd]));
-				}
-				cv::Mat img, smallImg, bayerImg;
-				for (size_t j = 0; j < bufferSize; j++) {
-					if (hasSyncFile == false || j == 0) {
+					int frameNum = frameInds[i][syncIndNext + j] - frameInds[i][syncInd + j - 1];
+					for (int k = 0; k < frameNum; k++) {
 						readers[i] >> img;
 					}
-					else {
-						int frameNum = frameInds[i][syncIndNext + j] - frameInds[i][syncInd + j - 1];
-						for (int k = 0; k < frameNum; k++) {
-							readers[i] >> img;
-						}
-						//syncInd++;
-						//syncIndNext++;
-						//if (syncIndNext >= frameInds[i].size())
-						//	syncIndNext = 0;
-					}
-					cv::resize(img, smallImg, cv::Size(camInfos[i].width, camInfos[i].height));
-					if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
-						bayerImg = colorBGR2BayerRG(smallImg);
-						this->bufferImgs[j][i].length = sizeof(uchar) * bayerImg.rows * bayerImg.cols;
-						memcpy(this->bufferImgs[j][i].data, bayerImg.data,
-							this->bufferImgs[j][i].length);
-					}
-					else {
-						this->bufferImgs[j][i].length = sizeof(uchar) * smallImg.rows * smallImg.cols * 3;
-						memcpy(this->bufferImgs[j][i].data, smallImg.data,
-							this->bufferImgs[j][i].length);
-					}
+					//syncInd++;
+					//syncIndNext++;
+					//if (syncIndNext >= frameInds[i].size())
+					//	syncIndNext = 0;
 				}
-				if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
-					readers[i].release();
-				}
-			}
-			else if (fileExtension.compare("jpg") == 0 || fileExtension.compare("png") == 0) {
-				cv::Mat img = cv::imread(videonames[i]);
-				cv::Mat smallImg, bayerImg;
 				cv::resize(img, smallImg, cv::Size(camInfos[i].width, camInfos[i].height));
-				bayerImg = colorBGR2BayerRG(smallImg);
-				// assign to buffer
 				if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
-					for (size_t j = 0; j < bufferSize; j++) {
-						this->bufferImgs[j][i].length = sizeof(uchar) * bayerImg.rows * bayerImg.cols;
-						memcpy(this->bufferImgs[j][i].data, bayerImg.data,
-							this->bufferImgs[j][i].length);
-					}
+					bayerImg = colorBGR2BayerRG(smallImg);
+					this->bufferImgs[j][i].length = sizeof(uchar) * bayerImg.rows * bayerImg.cols;
+					memcpy(this->bufferImgs[j][i].data, bayerImg.data,
+						this->bufferImgs[j][i].length);
 				}
 				else {
-					for (size_t j = 0; j < bufferSize; j++) {
-						this->bufferImgs[j][i].length = sizeof(uchar) * smallImg.rows * smallImg.cols;
-						memcpy(this->bufferImgs[j][i].data, smallImg.data,
-							this->bufferImgs[j][i].length);
-					}
+					this->bufferImgs[j][i].length = sizeof(uchar) * smallImg.rows * smallImg.cols * 3;
+					memcpy(this->bufferImgs[j][i].data, smallImg.data,
+						this->bufferImgs[j][i].length);
+				}
+			}
+			if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
+				readers[i].release();
+			}
+		}
+		else if (fileExtension.compare("jpg") == 0 || fileExtension.compare("png") == 0) {
+			cv::Mat img = cv::imread(videonames[i]);
+			cv::Mat smallImg, bayerImg;
+			cv::resize(img, smallImg, cv::Size(camInfos[i].width, camInfos[i].height));
+			bayerImg = colorBGR2BayerRG(smallImg);
+			// assign to buffer
+			if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
+				for (size_t j = 0; j < bufferSize; j++) {
+					this->bufferImgs[j][i].length = sizeof(uchar) * bayerImg.rows * bayerImg.cols;
+					memcpy(this->bufferImgs[j][i].data, bayerImg.data,
+						this->bufferImgs[j][i].length);
 				}
 			}
 			else {
-				SysUtil::errorOutput("Unknown file type for FileCamera, only avi, mp4, jpg, png are support !");
+				for (size_t j = 0; j < bufferSize; j++) {
+					this->bufferImgs[j][i].length = sizeof(uchar) * smallImg.rows * smallImg.cols;
+					memcpy(this->bufferImgs[j][i].data, smallImg.data,
+						this->bufferImgs[j][i].length);
+				}
 			}
 		}
+		else {
+			SysUtil::errorOutput("Unknown file type for FileCamera, only avi, mp4, jpg, png are support !");
+		}
+		SysUtil::infoOutput("Buffer video " + filenames[i] + "done!");
 		return 0;
 	}
 

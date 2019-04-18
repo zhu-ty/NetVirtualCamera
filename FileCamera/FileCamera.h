@@ -59,6 +59,8 @@ namespace cam {
 		*/
 		int bufferImageData();
 
+		int bufferSingleCamera(int camInd);
+
 	public:
 		// constructor
 		GenCameraFile();
