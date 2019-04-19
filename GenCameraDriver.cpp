@@ -391,7 +391,9 @@ namespace cam {
 				{
 					if (_FileCam_lastUpdateTime.size() <= camInd)
 						_FileCam_lastUpdateTime.push_back(SysUtil::getCurrentTimeMicroSecond());
-					if (SysUtil::getCurrentTimeMicroSecond() - _FileCam_lastUpdateTime[camInd] >= (1 / camInfos[camInd].fps) * 1000 * 1000)
+					if (SysUtil::getCurrentTimeMicroSecond() - _FileCam_lastUpdateTime[camInd] >= (1 / _FileCam_syncFps) * 1000 * 1000
+						&& ((!_FileCam_stopWhenFinishVideo) || thBufferInds[camInd] < bufferSize - 1 )
+						)
 					{
 						thBufferInds[camInd] = (thBufferInds[camInd] + 1) % bufferSize;
 						_FileCam_lastUpdateTime[camInd] = SysUtil::getCurrentTimeMicroSecond();

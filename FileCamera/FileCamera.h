@@ -74,7 +74,9 @@ namespace cam {
 		int startCapture() { return 0; }
 		int stopCapture() { return 0; }
 		int setFPS(int camInd, float fps, 
-			float exposureUpperLimitRatio) { return 0; }
+			float exposureUpperLimitRatio) {
+			syncFps = fps; return 0;
+		}
 		int setAutoWhiteBalance(int camInd) { return 0; }
 		int setWhiteBalance(int camInd, float redGain,
 			float greenGain, float blueGain) { return 0; }

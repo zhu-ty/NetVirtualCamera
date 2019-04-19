@@ -461,10 +461,12 @@ namespace cam {
 		std::vector<GenCamImgRatio> imgRatios;
 
 		std::vector<int64_t> _FileCam_lastUpdateTime;
+		double _FileCam_syncFps = 10.0;
 
 	public:
 		// variable used to start capturing thread
 		int isStartRecord;
+		bool _FileCam_stopWhenFinishVideo = false;
 	protected:
 
 	public:
