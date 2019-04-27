@@ -43,7 +43,7 @@ int ImageZipperWriter::append(std::vector<cv::Mat> &imgs)
 		if (_frame > pow(10, MAX_FRAME_BUFFER_SIZE))
 			SKCommon::warningOutput(SKCommon::format("max frame size reached, maxnimum = %d, frame count = %d", pow(10, MAX_FRAME_BUFFER_SIZE), _frame));
 		//if (depths[i].type() != CV_16UC1)
-		//	SKCommon::warningOutput(DEBUG_STRING + "depth.type != CV_16UC1");
+		//	SKCommon::warningOutput(SKCOMMON_DEBUG_STRING + "depth.type != CV_16UC1");
 		int type = imgs[i].type();
 		uchar depth = type & CV_MAT_DEPTH_MASK;
 		uchar chans = 1 + (type >> CV_CN_SHIFT);
