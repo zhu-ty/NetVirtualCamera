@@ -22,6 +22,8 @@
 #include <string>
 #include <ctime>
 #include <algorithm>
+#include <random>
+#include <regex>
 #if defined(_WIN32) || defined(WIN32)
 //#define _WINSOCKAPI_ 
 #include <windows.h>
@@ -32,6 +34,8 @@
 #else
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <stdarg.h>
 #include <pthread.h>
 #endif
@@ -43,6 +47,10 @@
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
+
+#define VALUE_TO_STRING(x) #x
+#define VALUE(x) VALUE_TO_STRING(x)
+#define VAR_NAME_VALUE(var) #var "="  VALUE(var)
 
 #ifndef WIN32
 #define BLACK_TEXT(x) "\033[30;1m" << x << "\033[0m"
@@ -73,7 +81,11 @@
  : std::string(__FILE__))  \
 + " line: " + std::to_string(__LINE__) +" func: " + std::string(__func__) +"\n") 
 
-class SysUtil {
+#define SKCOMMON_USED
+
+
+
+class SKCommon {
 private:
 	enum class ConsoleColor {
 		red = 12,
@@ -89,12 +101,11 @@ public:
 	/*                    mkdir function                       */
 	/***********************************************************/
 	static int mkdir(char* dir) {
+		infoOutput("Makring dir :" + std::string(dir));
 #ifdef WIN32
 		_mkdir(dir);
 #else
-		char command[256];
-		sprintf(command, "mkdir %s", dir);
-		system(command);
+		printf("MKDIR RETURN:: %d\n",::mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH));
 #endif
 		return 0;
 	}
@@ -125,9 +136,9 @@ public:
 	/***********************************************************/
 	static int errorOutput(std::string info) {
 #ifdef WIN32
-		SysUtil::setConsoleColor(ConsoleColor::red);
+		SKCommon::setConsoleColor(ConsoleColor::red);
 		std::cerr << "ERROR: " << info.c_str() << std::endl;
-		SysUtil::setConsoleColor(ConsoleColor::white);
+		SKCommon::setConsoleColor(ConsoleColor::white);
 #else
 		std::cerr << RED_TEXT("ERROR: ") << RED_TEXT(info.c_str())
 			<< std::endl;
@@ -137,9 +148,9 @@ public:
 
 	static int warningOutput(std::string info) {
 #ifdef WIN32
-		SysUtil::setConsoleColor(ConsoleColor::yellow);
+		SKCommon::setConsoleColor(ConsoleColor::yellow);
 		std::cerr << "WARNING: " << info.c_str() << std::endl;
-		SysUtil::setConsoleColor(ConsoleColor::white);
+		SKCommon::setConsoleColor(ConsoleColor::white);
 #else
 		std::cerr << YELLOW_TEXT("WARNING: ") << YELLOW_TEXT(info.c_str())
 			<< std::endl;
@@ -149,9 +160,9 @@ public:
 
 	static int infoOutput(std::string info) {
 #ifdef WIN32
-		SysUtil::setConsoleColor(ConsoleColor::green);
+		SKCommon::setConsoleColor(ConsoleColor::green);
 		std::cerr << "INFO: " << info.c_str() << std::endl;
-		SysUtil::setConsoleColor(ConsoleColor::white);
+		SKCommon::setConsoleColor(ConsoleColor::white);
 #else
 		std::cerr << GREEN_TEXT("INFO: ") << GREEN_TEXT(info.c_str())
 			<< std::endl;
@@ -161,9 +172,9 @@ public:
 
 	static int debugOutput(std::string info) {
 #ifdef WIN32
-		SysUtil::setConsoleColor(ConsoleColor::pink);
+		SKCommon::setConsoleColor(ConsoleColor::pink);
 		std::cerr << "DEBUG INFO: " << info.c_str() << std::endl;
-		SysUtil::setConsoleColor(ConsoleColor::white);
+		SKCommon::setConsoleColor(ConsoleColor::white);
 #else
 		std::cerr << MAGENTA_TEXT("DEBUG INFO: ") << MAGENTA_TEXT(info.c_str())
 			<< std::endl;
@@ -235,6 +246,11 @@ public:
 		return std::string(text);
 	}
 
+	static int mkEmptyFile(std::string dir) {
+		FILE *a = fopen(dir.c_str(), "w");
+		return fclose(a);
+	}
+
 	static inline bool existFile(const std::string& name) {
 		if (FILE *file = fopen(name.c_str(), "r")) {
 			fclose(file);
@@ -244,11 +260,47 @@ public:
 			return false;
 		}
 	}
+
+	static int copyFile(std::string file1, std::string file2)
+	{
+		if (file1 == file2)
+			return -1;
+		FILE *src = fopen(file1.c_str(), "rb");
+		FILE *dst = fopen(file2.c_str(), "wb");
+		if (src == nullptr)
+			return -2;
+		int i;
+		for (i = getc(src); i != EOF; i = getc(src))
+		{
+			putc(i, dst);
+		}
+		fclose(dst);
+		fclose(src);
+	}
+
+	static int removeFile(std::string file)
+	{
+		return remove(file.c_str());
+	}
+
+	static int mkfile(std::string file) {
+		FILE *a = fopen(file.c_str(), "w");
+		return fclose(a);
+	}
 	
 	static inline std::string toLower(std::string in)
 	{
 		std::transform(in.begin(), in.end(), in.begin(), singletolower); //Better than ::tolower() when work with UTF-8
 		return in;
+	}
+
+	static std::vector<std::string> splitString(std::string input, std::string regex) {
+		// passing -1 as the submatch index parameter performs splitting
+		std::regex re(regex);
+		std::sregex_token_iterator
+			first{ input.begin(), input.end(), re, -1 },
+			last;
+		return{ first, last };
 	}
 	
 private:
