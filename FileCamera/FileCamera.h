@@ -28,6 +28,7 @@ namespace cam {
 		GenCamBayerPattern bayerPattern;
 		// video start index
 		int startFrameInd;
+		std::vector<int> elemSizes;
 
 		// sync file
 		bool hasSyncFile;

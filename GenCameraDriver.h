@@ -258,6 +258,11 @@ namespace cam {
 			return in;
 		}
 
+		static std::string getFileExtention(std::string fileName)
+		{
+			return fileName.substr(fileName.find_last_of(".") + 1);
+		}
+
 		static inline std::string format(const char *msg, ...)
 		{
 			std::size_t const STRING_BUFFER(4096);

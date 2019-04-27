@@ -11,6 +11,7 @@ Implementation of file camera
 #include <unistd.h>
 #endif
 #include "FileCamera.h"
+#include "ImageZipper.h"
 
 namespace cam {
 
@@ -140,6 +141,39 @@ namespace cam {
 		syncIndNext = syncInd + 1;
 		this->bufferImgs.resize(this->bufferSize);
 		this->readers.resize(this->cameraNum);
+		this->elemSizes.resize(this->cameraNum);
+
+		for (int i = 0; i < cameraNum; i++)
+		{
+			if (SysUtil::getFileExtention(videonames[i]) == "zip") //special file camera
+			{
+				ImageZipperReader reader;
+				reader.init(videonames[i]);
+				cv::Mat tmp = reader.read(0);
+				reader.release();
+				if (tmp.channels() == 1) //special camera file, maybe CV_16UC1 or CV_32FC1
+				{
+					elemSizes[i] = tmp.elemSize();
+				}
+				else if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording)
+				{
+					elemSizes[i] = 1;
+				}
+				else
+				{
+					elemSizes[i] = 3;
+				}
+			}
+			else if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording)
+			{
+				elemSizes[i] = 1;
+			}
+			else
+			{
+				elemSizes[i] = 3;
+			}
+		}
+
 		for (size_t i = 0; i < bufferSize; i++) {
 			this->bufferImgs[i].resize(this->cameraNum);
 		}
@@ -149,19 +183,12 @@ namespace cam {
 			width = camInfos[i].width;
 			height = camInfos[i].height;
 			size_t length = width * height;
-			for (size_t j = 0; j < bufferSize; j++) {
-				if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording) {
-					this->bufferImgs[j][i].data = new char[length];
-					this->bufferImgs[j][i].length = length * sizeof(uchar);
-					this->bufferImgs[j][i].maxLength = length * sizeof(uchar);
-					this->bufferImgs[j][i].type = this->bufferType;
-				}
-				else {
-					this->bufferImgs[j][i].data = new char[length * 3];
-					this->bufferImgs[j][i].length = length * 3 * sizeof(uchar);
-					this->bufferImgs[j][i].maxLength = length * 3 * sizeof(uchar);
-					this->bufferImgs[j][i].type = this->bufferType;
-				}
+			for (size_t j = 0; j < bufferSize; j++) 
+			{
+				this->bufferImgs[j][i].data = new char[length * elemSizes[i]];
+				this->bufferImgs[j][i].length = 0;
+				this->bufferImgs[j][i].maxLength = length * elemSizes[i] * sizeof(uchar);
+				this->bufferImgs[j][i].type = this->bufferType;
 			}
 		}
 		// get video start frame index
@@ -181,8 +208,9 @@ namespace cam {
 	{
 		int i = camInd;
 		SysUtil::infoOutput("Buffer video " + filenames[i]);
-		std::string fileExtension = videonames[i].substr(videonames[i].find_last_of(".") + 1);
-		if (fileExtension.compare("avi") == 0 || fileExtension.compare("mp4") == 0) {
+		std::string fileExtension = SysUtil::getFileExtention(videonames[i]);
+		if (fileExtension.compare("avi") == 0 || fileExtension.compare("mp4") == 0) 
+		{
 			readers[i].open(videonames[i]);
 			if (hasSyncFile == false) {
 				readers[i].set(cv::CAP_PROP_POS_FRAMES, startFrameInd + frameshifts[i]);
@@ -226,7 +254,52 @@ namespace cam {
 				readers[i].release();
 			}
 		}
-		else if (fileExtension.compare("jpg") == 0 || fileExtension.compare("png") == 0) {
+		else if (fileExtension.compare("zip") == 0)
+		{
+			ImageZipperReader readerZip;
+			readerZip.init(videonames[i]);
+			int startIdx = 0;
+			if (hasSyncFile == false) 
+			{
+				startIdx = startFrameInd + frameshifts[i];
+				SysUtil::infoOutput(cv::format("Zip file %s, start buffering from index %d ...",
+					videonames[i].c_str(), startFrameInd + frameshifts[i]));
+			}
+			else {
+				startIdx = frameInds[i][syncInd];
+				SysUtil::infoOutput(cv::format("Zip file %s, start buffering from index %d ...",
+					videonames[i].c_str(), frameInds[i][syncInd]));
+			}
+			cv::Mat img, smallImg, bayerImg;
+			for (size_t j = 0; j < bufferSize; j++) {
+				if (hasSyncFile == false || j == 0) {
+					img = readerZip.read(startIdx);
+					startIdx++;
+				}
+				else {
+					int frameNum = frameInds[i][syncIndNext + j] - frameInds[i][syncInd + j - 1];
+					startIdx += frameNum;
+					img = readerZip.read(startIdx);
+				}
+				cv::resize(img, smallImg, cv::Size(camInfos[i].width, camInfos[i].height));
+				if (this->camPurpose != cam::GenCamCapturePurpose::FileCameraRecording && smallImg.channels() > 1)
+				{
+						bayerImg = colorBGR2BayerRG(smallImg);
+						this->bufferImgs[j][i].length = sizeof(uchar) * bayerImg.rows * bayerImg.cols;
+						memcpy(this->bufferImgs[j][i].data, bayerImg.data,
+							this->bufferImgs[j][i].length);
+				}
+				else 
+				{
+					this->bufferImgs[j][i].length = sizeof(uchar) * smallImg.elemSize() * smallImg.rows * smallImg.cols;
+					memcpy(this->bufferImgs[j][i].data, smallImg.data,
+						this->bufferImgs[j][i].length);
+				}
+			}
+			readerZip.release();
+		}
+		else if (fileExtension.compare("jpg") == 0 || fileExtension.compare("png") == 0) 
+		{
 			cv::Mat img = cv::imread(videonames[i]);
 			cv::Mat smallImg, bayerImg;
 			cv::resize(img, smallImg, cv::Size(camInfos[i].width, camInfos[i].height));
@@ -247,7 +320,8 @@ namespace cam {
 				}
 			}
 		}
-		else {
+		else 
+		{
 			SysUtil::errorOutput("Unknown file type for FileCamera, only avi, mp4, jpg, png are support !");
 		}
 		SysUtil::infoOutput("Buffer video " + filenames[i] + "done!");
@@ -300,15 +374,29 @@ namespace cam {
 			camInfos[i].isWBRaw = 1;
 			camInfos[i].autoExposure = cam::Status::off;
 			camInfos[i].bayerPattern = GenCamBayerPattern::BayerGRBG;
-			// read width and height from video file
-			cv::VideoCapture reader(videonames[i]);
-			camInfos[i].fps = reader.get(cv::CAP_PROP_FPS);
-			camInfos[i].width = reader.get(cv::CAP_PROP_FRAME_WIDTH) 
-				* this->bufferScale;
-			camInfos[i].height = reader.get(cv::CAP_PROP_FRAME_HEIGHT)
-				* this->bufferScale;
-			frameCounts[i] = reader.get(cv::CAP_PROP_FRAME_COUNT);
-			reader.release();
+			if (SysUtil::getFileExtention(videonames[i]) == "zip")
+			{
+				ImageZipperReader reader;
+				reader.init(videonames[i]);
+				cv::Mat tmp = reader.read(0);
+				camInfos[i].fps = 10;
+				camInfos[i].width = tmp.cols * this->bufferScale;
+				camInfos[i].height = tmp.rows * this->bufferScale;
+				frameCounts[i] = reader.getMaxFrameNum();
+				reader.release();
+			}
+			else
+			{
+				// read width and height from video file
+				cv::VideoCapture reader(videonames[i]);
+				camInfos[i].fps = reader.get(cv::CAP_PROP_FPS);
+				camInfos[i].width = reader.get(cv::CAP_PROP_FRAME_WIDTH)
+					* this->bufferScale;
+				camInfos[i].height = reader.get(cv::CAP_PROP_FRAME_HEIGHT)
+					* this->bufferScale;
+				frameCounts[i] = reader.get(cv::CAP_PROP_FRAME_COUNT);
+				reader.release();
+			}
 		}
 		return 0;
 	}
@@ -379,8 +467,15 @@ namespace cam {
 	@brief buffer next frame
 	@return int
 	*/
-	int GenCameraFile::reBufferFileCamera() {
-		for (size_t i = 0; i < this->cameraNum; i++) {
+	int GenCameraFile::reBufferFileCamera() 
+	{
+		for (size_t i = 0; i < this->cameraNum; i++) 
+		{
+			if (SysUtil::getFileExtention(videonames[i]) == "zip")
+			{
+				SysUtil::warningOutput("reBufferFileCamera does not support zip file now");
+				continue;
+			}
 			if (readers[i].isOpened() == true) {
 				readers[i].release();
 			}
@@ -395,7 +490,13 @@ namespace cam {
 	*/
 	int GenCameraFile::bufferNextFrame() {
 		bool isFinalFrame = false;
-		for (size_t i = 0; i < this->cameraNum; i++) {
+		for (size_t i = 0; i < this->cameraNum; i++) 
+		{
+			if (SysUtil::getFileExtention(videonames[i]) == "zip")
+			{
+				SysUtil::warningOutput("bufferNextFrame does not support zip file now");
+				continue;
+			}
 			//SysUtil::infoOutput("Buffer next frame of video " + filenames[i]);
 			cv::Mat img, smallImg, bayerImg;
 			int j = 0;
