@@ -385,18 +385,17 @@ namespace cam {
 				imgs[camInd] = bufferImgs[index][camInd];
 			}
 			// increase buffer indices for file camera
-			if (this->camModel == cam::CameraModel::File) 
+			if (this->camModel == cam::CameraModel::File)
 			{
-				for (size_t camInd = 0; camInd < this->cameraNum; camInd++) 
+				if (_FileCam_lastUpdateTime == -1)
+					_FileCam_lastUpdateTime = SysUtil::getCurrentTimeMicroSecond();
+				if (SysUtil::getCurrentTimeMicroSecond() - _FileCam_lastUpdateTime >= (1 / _FileCam_syncFps) * 1000 * 1000
+					&& ((!_FileCam_stopWhenFinishVideo) || thBufferInds[0] < bufferSize - 1)) //TODO: now we only care Ind 0
 				{
-					if (_FileCam_lastUpdateTime.size() <= camInd)
-						_FileCam_lastUpdateTime.push_back(SysUtil::getCurrentTimeMicroSecond());
-					if (SysUtil::getCurrentTimeMicroSecond() - _FileCam_lastUpdateTime[camInd] >= (1 / _FileCam_syncFps) * 1000 * 1000
-						&& ((!_FileCam_stopWhenFinishVideo) || thBufferInds[camInd] < bufferSize - 1 )
-						)
+					for (size_t camInd = 0; camInd < this->cameraNum; camInd++)
 					{
 						thBufferInds[camInd] = (thBufferInds[camInd] + 1) % bufferSize;
-						_FileCam_lastUpdateTime[camInd] = SysUtil::getCurrentTimeMicroSecond();
+						_FileCam_lastUpdateTime = SysUtil::getCurrentTimeMicroSecond();
 					}
 				}
 			}

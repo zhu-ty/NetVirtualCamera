@@ -465,7 +465,7 @@ namespace cam {
 		// ratio set for each img
 		std::vector<GenCamImgRatio> imgRatios;
 
-		std::vector<int64_t> _FileCam_lastUpdateTime;
+		int64_t _FileCam_lastUpdateTime = -1;
 		double _FileCam_syncFps = 10.0;
 
 	public:
