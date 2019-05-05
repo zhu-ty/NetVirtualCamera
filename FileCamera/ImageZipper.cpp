@@ -159,7 +159,7 @@ cv::Mat ImageZipperReader::read(int frameNum, std::string & fileName)
 	zip_entry_open((zip_t*)_zip, file.c_str());
 	zip_entry_read((zip_t*)_zip, &buf, &bufsize);
 	zip_entry_close((zip_t*)_zip);
-	SKCommon::infoOutput(file + " read.");
+	//SKCommon::infoOutput(file + " read.");
 	std::vector<uchar> bufs(bufsize);
 	for (int i = 0; i < bufsize; i++)
 		bufs[i] = ((uchar*)buf)[i];
