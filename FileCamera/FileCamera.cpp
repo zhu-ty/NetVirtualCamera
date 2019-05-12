@@ -223,7 +223,10 @@ namespace cam {
 					videonames[i].c_str(), frameInds[i][syncInd]));
 			}
 			cv::Mat img, smallImg, bayerImg;
-			for (size_t j = 0; j < bufferSize; j++) {
+			for (size_t j = 0; j < bufferSize; j++) 
+			{
+				if (j % (bufferSize / 10) == 0 && j != 0)
+					SysUtil::infoOutput(cv::format("Buffer %s : %d%%", camInfos[i].sn.c_str(), (j / (bufferSize / 10)) * 10));
 				if (hasSyncFile == false || j == 0) {
 					readers[i] >> img;
 				}
@@ -271,7 +274,10 @@ namespace cam {
 					videonames[i].c_str(), frameInds[i][syncInd]));
 			}
 			cv::Mat img, smallImg, bayerImg;
-			for (size_t j = 0; j < bufferSize; j++) {
+			for (size_t j = 0; j < bufferSize; j++) 
+			{
+				if (j % (bufferSize / 10) == 0 && j != 0)
+					SysUtil::infoOutput(cv::format("Buffer %s : %d%%", camInfos[i].sn.c_str(), (j / (bufferSize / 10)) * 10));
 				if (hasSyncFile == false || j == 0) {
 					img = readerZip.read(startIdx);
 					startIdx++;
