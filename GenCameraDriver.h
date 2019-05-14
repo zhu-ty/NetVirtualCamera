@@ -748,6 +748,8 @@ namespace cam {
 		*/
 		int captureFrame(std::vector<Imagedata> & imgs);
 
+		int __FileCam__captureFrameTimeStamp(std::vector<Imagedata> & imgs, double time_s);
+
 		/**
 		@brief capture one frame with mapping
 		@param std::vector<Imagedata> & imgs: output captured images

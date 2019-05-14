@@ -408,6 +408,21 @@ namespace cam {
 		return 0;
 	}
 
+	int GenCamera::__FileCam__captureFrameTimeStamp(std::vector<Imagedata>& imgs, double time_s)
+	{
+		if (this->camModel != cam::CameraModel::File)
+		{
+			SysUtil::errorOutput("Not File is not implemented yet !");
+		}
+		for (size_t camInd = 0; camInd < this->cameraNum; camInd++) 
+		{
+			double f = _FileCam_syncFps;
+			int index = (int)(round(time_s * _FileCam_syncFps)) % bufferSize;
+			imgs[camInd] = bufferImgs[index][camInd];
+		}
+		return 0;
+	}
+
 	/**
 	@brief capture one frame with Mapping
 	@param std::vector<Imagedata> & imgs: output captured images
