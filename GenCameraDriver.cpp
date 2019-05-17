@@ -417,7 +417,7 @@ namespace cam {
 		for (size_t camInd = 0; camInd < this->cameraNum; camInd++) 
 		{
 			double f = _FileCam_syncFps;
-			int index = (int)(round(time_s * _FileCam_syncFps)) % bufferSize;
+			int index = ((int)(round(time_s * _FileCam_syncFps)) % bufferSize + bufferSize) % bufferSize;
 			imgs[camInd] = bufferImgs[index][camInd];
 		}
 		return 0;
