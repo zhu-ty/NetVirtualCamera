@@ -31,7 +31,7 @@ CameraCommunicationThread::CameraCommunicationThread(int _id,std::vector<CameraS
 	for (int i = 0;i < formVector_.size();i++)
 	{
 		formVector_[i] = i / 16;
-	} //默认取高八位
+	} //xxxxxxxxxxxx
 	//decoder.init(_serverVec[0].boxVec_[0].cameraVec_[0].height_, _serverVec[0].boxVec_[0].cameraVec_[0].width_, 75);
 	//img=new cv::cuda::GpuMat(_serverVec[0].boxVec_[0].cameraVec_[0].height_, _serverVec[0].boxVec_[0].cameraVec_[0].width_, CV_8UC3);
 	//resizeimg = new cv::cuda::GpuMat(512, 512, CV_8UC3);
@@ -62,12 +62,12 @@ CameraCommunicationThread::~CameraCommunicationThread()
 
 void CameraCommunicationThread::UpdateStatus(void)
 {
-	///如果当前未连接则复位连接
+	///xxxxxxxxxxxxxxxxxxxxxxxx
 	if (id_ < serverVec_.size()) {
 		if (!serverVec_[id_].connectedFlag_) {
 			ResetSocket();
 		}
-		//已连接则发送心跳包来帮助服务器确认状态
+		//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 		else {
 			sendPackage_.command_ = Communication_Camera_Get_Status;
 			Communication_Camera_Status tmp=SendData();
@@ -145,7 +145,7 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 				if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_))
 				{
 					//if (tcpSocket_->waitForReadyRead(socketReadWaitForMs_)) {
-						///先解析返回的状态
+						///xxxxxxxxxxxxxxxx
 					if (sendPackage_.command_ == Communication_Camera_Get_Status) {
 						tcpSocket_->read((unsigned char*)&receivePackage_.status_, sizeof(receivePackage_.status_));
 						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
@@ -162,7 +162,7 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 							(unsigned char*)&receivePackage_.status_,
 							sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
 						//tcpSocket_->read((char *)&receivePackage_.status_, sizeof(receivePackage_.status_));
-						//	读取返回值
+						//	xxxxxxxxxx
 						if (receivePackage_.status_ == Communication_Camera_Open_Camera_Ok) {
 							int dataAmount = receivePackage_.dataSize_;
 							if (dataAmount > 0 && dataAmount < CAMERA_IMAGE_DATA_MAX_SIZE) {
@@ -195,7 +195,7 @@ Communication_Camera_Status CameraCommunicationThread::SendData(void)
 						int readbyteSize = tcpSocket_->read(
 							(unsigned char*)&receivePackage_.status_,
 							sizeof(receivePackage_.status_) + sizeof(receivePackage_.dataSize_));
-						//	读取图片
+						//	xxxxxxxx
 						if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
 							int dataAmount = receivePackage_.dataSize_;
 							if (dataAmount > 0 && dataAmount < CAMERA_IMAGE_DATA_MAX_SIZE) {
@@ -276,7 +276,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.boxIndex_ = boxIndex;
 				emit OperationFinished(cameraControlMessage_);
 			}
-			else {			//操作当前服务器下的所有盒子
+			else {			//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					int boxIndex = i;
 					CameraOpenBoxPackage dataTmp;
@@ -343,7 +343,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.cameraIndex_ = cameraIndex;
 				emit OperationFinished(cameraControlMessage_);
 			//}
-			//else {			//操作当前服务器下的所有相机
+			//else {			//xxxxxxxxxxxxxxxxxxxxxxxxxx
 			//	for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size();++i) {
 			//		for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 			//			int boxIndex = i;
@@ -399,7 +399,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.cameraIndex_ = cameraIndex;
 				emit OperationFinished(cameraControlMessage_);
 			}
-			else {				//操作当前服务器下的所有相机
+			else {				//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
@@ -444,7 +444,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.cameraIndex_ = cameraIndex;
 				emit OperationFinished(cameraControlMessage_);
 			}
-			else {				//操作当前服务器下的所有相机
+			else {				//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
@@ -489,7 +489,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				sendPackage_.command_ = Communication_Camera_Get_Image;
 				memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
 				cameraControlMessage_.status_ = SendData();
-				///解析接收到的数据
+				///xxxxxxxxxxxxxxxx
 				if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
 					CameraGetImagePackage receiveDataTmp;
 					memcpy(&receiveDataTmp, receivePackage_.data_, sizeof(CameraGetImagePackage));
@@ -549,7 +549,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				//		sendPackage_.command_ = Communication_Camera_Get_Image;
 				//		memcpy(sendPackage_.data, &dataTmp, sizeof(dataTmp));
 				//		cameraControlMessage_.status_ = SendData();
-				//		///解析接收到的数据
+				//		///xxxxxxxxxxxxxxxx
 				//		if (receivePackage_.status_ == Communication_Camera_Get_Image_Ok) {
 				//			CameraGetImagePackage receiveDataTmp;
 				//			memcpy(&receiveDataTmp, receivePackage_.data_, sizeof(CameraGetImagePackage));
@@ -606,7 +606,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.boxIndex_ = boxIndex;
 				emit OperationFinished(cameraControlMessage_);
 			}
-			else {			//操作当前服务器下的所有盒子
+			else {			//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					int boxIndex = i;
 					CameraCloseBoxPackage dataTmp;
@@ -640,7 +640,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				cameraControlMessage_.cameraIndex_ = cameraIndex;
 				emit OperationFinished(cameraControlMessage_);
 			}
-			else {			//操作当前服务器下的所有相机
+			else {			//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
@@ -680,7 +680,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 				emit OperationFinished(cameraControlMessage_);
 				break;
 			}
-			else {					//操作当前服务器下的所有相机
+			else {					//xxxxxxxxxxxxxxxxxxxxxxxxxx
 				for (int32_t i = 0; i < serverVec_[serverIndex].boxVec_.size(); ++i) {
 					for (int32_t j = 0; j < serverVec_[serverIndex].boxVec_[i].cameraVec_.size(); ++j) {
 						int boxIndex = i;
@@ -710,7 +710,7 @@ void CameraCommunicationThread::StartOperation(CameraControlMessage _cameraContr
 
 CameraCommunication::CameraCommunication()
 {
-	////初始化默认的相机配置参数,用于生成配置表
+	////xxxxxxxxxxxxxxxxxxxxxxxx,xxxxxxxxxxxxxx
 	//CameraServerUnitTypeDef serverUnitTmp;
 	//serverVec_.clear();
 	//for (int32_t i = 0; i < serverAmount; ++i) {
@@ -723,8 +723,8 @@ CameraCommunication::CameraCommunication()
 	for (int i=0;i <formVector.size();i++)
 	{
 		formVector[i] = i/16;
-	}        //默认取高八位
-	//加载默认的配置文件
+	}        //xxxxxxxxxxxx
+	//xxxxxxxxxxxxxxxxxx
 
 	//LoadConfigFile(QString::fromStdString(configFileName_));
 
@@ -743,15 +743,15 @@ CameraCommunication::~CameraCommunication()
 
 BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<CameraServerUnitTypeDef> &_serverVec)
 {
-	///采用opencv的yml文件保存参数,保存路径为当前工作目录下
-	///注意保存为多级节点时的写法，各节点名不要带":"
+	///xxxxopencvxxymlxxxxxxxxxxxx,xxxxxxxxxxxxxxxxxxxxxxxx
+	///xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx":"
 	cv::FileStorage configFileTmp(_file.toStdString(), cv::FileStorage::WRITE);
 	if (!configFileTmp.isOpened() || _serverVec.empty()) {
 		MY_ERROR(Error_WriteFile_Failed, _file.toStdString().c_str());
 		emit SaveConfigFileFinished(false);
 	}
 	std::ostringstream strTmp;
-	//第一级的服务器节点
+	//xxxxxxxxxxxxxxxxxx
 	configFileTmp << "serverAmount" << int32_t(_serverVec.size());
 	for (int32_t i = 0; i < _serverVec.size(); ++i) {
 		_serverVec[i].id_ = i;
@@ -762,7 +762,7 @@ BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<Cam
 		configFileTmp << "ip" << _serverVec[i].ip_;
 		configFileTmp << "port" << _serverVec[i].port_;
 
-		//第二级的盒子节点
+		//xxxxxxxxxxxxxxxx
 		_serverVec[i].boxAmount_ = _serverVec[i].boxVec_.size();
 		configFileTmp << "boxAmount" << _serverVec[i].boxAmount_;
 		for (int32_t j = 0; j < _serverVec[i].boxVec_.size(); ++j) {
@@ -772,7 +772,7 @@ BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<Cam
 			configFileTmp << "id" << _serverVec[i].boxVec_[j].id_;
 			configFileTmp << "mac" << _serverVec[i].boxVec_[j].mac_;
 
-			//第三级的相机节点
+			//xxxxxxxxxxxxxxxx
 			_serverVec[i].boxVec_[j].cameraAmount_ = _serverVec[i].boxVec_[j].cameraVec_.size();
 			configFileTmp << "cameraAmount" << _serverVec[i].boxVec_[j].cameraAmount_;
 			for (int32_t k = 0; k < _serverVec[i].boxVec_[j].cameraVec_.size(); ++k) {
@@ -807,8 +807,8 @@ BaseErrorType CameraCommunication::SaveConfigFile(QString _file, std::vector<Cam
 
 BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 {
-	///采用opencv的yml文件保存参数,保存路径为当前工作目录下
-	///注意读取多级节点时要采用iterator，各节点名不要带":"
+	///xxxxopencvxxymlxxxxxxxxxxxx,xxxxxxxxxxxxxxxxxxxxxxxx
+	///xxxxxxxxxxxxxxxxxxxxxxxxiteratorxxxxxxxxxxxxxxxx":"
 	std::vector<CameraServerUnitTypeDef> serverVecTmp;
 	cv::FileStorage configFileTmp(_file.toStdString(), cv::FileStorage::READ);
 	if (!configFileTmp.isOpened()) {
@@ -818,7 +818,7 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 
 	std::ostringstream strTmp;
 	configFileTmp["serverAmount"] >> serverAmount;
-	//第一级的服务器节点
+	//xxxxxxxxxxxxxxxxxx
 	serverVecTmp.clear();
 	for (int32_t i = 0; i < serverAmount; ++i) {
 		CameraServerUnitTypeDef serverUnitTmp;
@@ -832,7 +832,7 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 		//(*serverFileNodeItr)["boxAmount"] >> serverUnitTmp.boxAmount_;
 		serverUnitTmp.boxAmount_ = 1;
 
-		//第二级的盒子节点
+		//xxxxxxxxxxxxxxxx
 		serverUnitTmp.boxVec_.clear();
 		for (int32_t j = 0; j < serverUnitTmp.boxAmount_; ++j) {
 			CameraBoxUnitTypeDef boxUnitTmp;
@@ -845,7 +845,7 @@ BaseErrorType CameraCommunication::LoadConfigFile(QString _file)
 			boxUnitTmp.mac_ = "PIGPIGPIGPIGPIGGY";
 			(*boxFileNodeItr)["cameraAmount"] >> boxUnitTmp.cameraAmount_;
 
-			//第三级的相机节点
+			//xxxxxxxxxxxxxxxx
 			boxUnitTmp.cameraVec_.clear();
 			for (int32_t k = 0; k < boxUnitTmp.cameraAmount_; ++k) {
 				CameraParametersUnitTypeDef cameraUnitTmp;
@@ -896,11 +896,11 @@ void CameraCommunication::TimerTimeout(void)
 
 void CameraCommunication::UpdateLocalParameters(const std::vector<CameraServerUnitTypeDef> &_serverVec)
 {
-	///更新服务器参数
+	///xxxxxxxxxxxxxx
 	serverAmount = serverVec_.size();
 	serverVec_ = _serverVec;
 
-	///更新线程管理数组
+	///xxxxxxxxxxxxxxxx
 	if (threadVec_.size() < serverVec_.size()) {
 		while (threadVec_.size() < serverVec_.size()) {
 			threadVec_.push_back(new QThread(this));
@@ -915,14 +915,14 @@ void CameraCommunication::UpdateLocalParameters(const std::vector<CameraServerUn
 		}
 	}
 
-	///更新socket管理数组
+	///xxxxsocketxxxxxxxx
 	if (cameraCommunicationThreadVec_.size() < serverVec_.size()) {
 		while (cameraCommunicationThreadVec_.size() < serverVec_.size()) {
 			int threadIndex = cameraCommunicationThreadVec_.size();
 			cameraCommunicationThreadVec_.push_back(new CameraCommunicationThread(threadIndex,serverVec_));
 			cameraCommunicationThreadVec_.back()->moveToThread(threadVec_[threadIndex]);
 			CameraCommunicationThread *tmp = cameraCommunicationThreadVec_.back();
-			//自定义信号与槽的数据类型
+			//xxxxxxxxxxxxxxxxxxxxxxxx
 			qRegisterMetaType<CameraControlMessage>("CameraControlMessage &");
 			qRegisterMetaType<std::vector<CameraServerUnitTypeDef> >("std::vector<CameraServerUnitTypeDef> &");
 			qRegisterMetaType<QVector<int>>("QVector<int> &");
@@ -934,7 +934,7 @@ void CameraCommunication::UpdateLocalParameters(const std::vector<CameraServerUn
 	}
 	else if (cameraCommunicationThreadVec_.size() > serverVec_.size()) {
 		while (cameraCommunicationThreadVec_.size() > serverVec_.size()) {
-			///注意要删除对象以调用对象的析构函数
+			///xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 			delete cameraCommunicationThreadVec_.back();
 			cameraCommunicationThreadVec_.pop_back();
 		}

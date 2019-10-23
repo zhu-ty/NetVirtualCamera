@@ -1,7 +1,7 @@
 /***********************************************************************************************!
 * @file   :  base.cpp
 *
-* @brief  :  通用基本定义、函数
+* @brief  :  xxxxxxxxxxxxxxxxxx
 *
 * @author :  FrankHXW@gmail.com
 *
@@ -9,9 +9,9 @@
 *
 * @version:  V1.00
 *
-* @history:  V1.00：完成基本功能
+* @history:  V1.00xxxxxxxxxxxxxx
 *
-* @detail :  包括常见错误类型的定义，错误信息处理等
+* @detail :  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 *
 ************************************************************************************************/
 #include "Netbase.h"
@@ -38,16 +38,16 @@ BaseErrorType CreatDirectory(const char *_path)
 	int32_t length = int32_t(strlen(_path));
 	char *path = new char[length + 2];
 	memcpy(path, _path, length);
-	//在路径末尾加/  
+	//xxxxxxxxxxxx/  
 	if (path[length - 1] != '\\' && path[length - 1] != '/') {
 		path[length] = '/';
 		path[length + 1] = '\0';
 	}
-	//创建目录  
+	//xxxxxxxx  
 	for (int32_t i = 0; i <= length; ++i) {
 		if (path[i] == '\\' || path[i] == '/') {
 			path[i] = '\0';
-			//如果不存在,创建  
+			//xxxxxxxxxx,xxxx  
 			int32_t error = ACCESS(path, 0);
 			if (error != 0) {
 				error = MKDIR(path);
@@ -55,7 +55,7 @@ BaseErrorType CreatDirectory(const char *_path)
 					return Error_CreateFolder_Failed;
 				}
 			}
-			//支持linux,将所有\换成/  
+			//xxxxlinux,xxxxxx\xxxx/  
 			path[i] = '/';
 		}
 	}
